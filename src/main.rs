@@ -13,10 +13,13 @@ use repl::Repl;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    //版本号常量
+    const VERSION: &str = "Beta0.0.2";
     
     if args.len() < 2 {
         // 启动REPL模式
         let mut repl = Repl::new();
+        println!("Welcome to the ECL REPL! Version {}", VERSION);
         repl.run();
     } else if args[1] == "--debug-lexer" && args.len() >= 3 {
         // 调试lexer模式
@@ -46,7 +49,12 @@ fn main() {
                 break;
             }
         }
-    } else {
+    } else if args[1] == "--version" {
+        // 显示版本信息
+        println!("ECL Version {}", VERSION);
+    }
+    
+    else {
         // 文件模式
         let filename = &args[1];
         match fs::read_to_string(filename) {
