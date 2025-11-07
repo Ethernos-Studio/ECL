@@ -18,6 +18,34 @@ fn main() {
         // 启动REPL模式
         let mut repl = Repl::new();
         repl.run();
+    } else if args[1] == "--debug-lexer" && args.len() >= 3 {
+        // 调试lexer模式
+        let input = if args[2].ends_with(".ecl") {
+            // 如果是.ecl文件，读取文件内容
+            match fs::read_to_string(&args[2]) {
+                Ok(content) => content,
+                Err(e) => {
+                    eprintln!("Error reading file {}: {}", args[2], e);
+                    return;
+                }
+            }
+        } else {
+            // 否则直接使用参数
+            args[2].clone()
+        };
+        
+        let mut lexer = crate::lexer::Lexer::new(&input);
+        
+        println!("Debugging lexer for input: '{}'", input);
+        loop {
+            let (line, column) = lexer.get_position();
+            let token = lexer.next_token();
+            println!("Position: ({}, {}), Token: {:?}", line, column, token);
+            
+            if matches!(token, crate::token::Token::Eof) {
+                break;
+            }
+        }
     } else {
         // 文件模式
         let filename = &args[1];

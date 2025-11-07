@@ -106,12 +106,12 @@ impl Lexer {
             '<' => {
                 self.position += 1;
                 self.column += 1;
-                Token::Less
+                Token::LessThan
             }
             '>' => {
                 self.position += 1;
                 self.column += 1;
-                Token::Greater
+                Token::GreaterThan
             }
             '"' => {
                 self.position += 1;
@@ -133,14 +133,22 @@ impl Lexer {
     }
     
     fn skip_whitespace(&mut self) {
-        while self.position < self.input.len() && self.input[self.position].is_whitespace() {
+        while self.position < self.input.len() {
             if self.input[self.position] == '\n' {
                 self.line += 1;
                 self.column = 1;
-            } else {
+                self.position += 1;
+            } else if self.input[self.position].is_whitespace() {
                 self.column += 1;
+                self.position += 1;
+            } else if self.input[self.position] == '/' && self.position + 1 < self.input.len() && self.input[self.position + 1] == '/' {
+                // Skip single-line comment
+                while self.position < self.input.len() && self.input[self.position] != '\n' {
+                    self.position += 1;
+                }
+            } else {
+                break;
             }
-            self.position += 1;
         }
     }
     
@@ -169,10 +177,18 @@ impl Lexer {
     fn read_identifier(&mut self) -> Token {
         let mut result = String::new();
         
-        while self.position < self.input.len() && (self.input[self.position].is_alphabetic() || self.input[self.position] == '_') {
+        // 第一个字符必须是字母或下划线
+        if self.position < self.input.len() && (self.input[self.position].is_alphabetic() || self.input[self.position] == '_') {
             result.push(self.input[self.position]);
             self.position += 1;
             self.column += 1;
+            
+            // 后续字符可以是字母、数字或下划线
+            while self.position < self.input.len() && (self.input[self.position].is_alphanumeric() || self.input[self.position] == '_') {
+                result.push(self.input[self.position]);
+                self.position += 1;
+                self.column += 1;
+            }
         }
         
         match result.as_str() {
@@ -183,6 +199,16 @@ impl Lexer {
             "in" => Token::In,
             "if" => Token::If,
             "else" => Token::Else,
+            "func" => Token::Func,
+            "expr" => Token::Expr,
+            "return" => Token::Return,
+            "true" => Token::True,
+            "false" => Token::False,
+            "int" => Token::Int,
+            "str" => Token::Str,
+            "bool" => Token::Bool,
+            "float" => Token::Float,
+            "double" => Token::Double,
             _ => Token::Identifier(result),
         }
     }
