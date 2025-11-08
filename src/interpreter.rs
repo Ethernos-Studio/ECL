@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::ast::{ASTNode, Type};
-use crate::error::format_undefined_identifier_error;
+use crate::error::{error_messages, create_undefined_identifier_error, CompilerError};
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -9,9 +9,23 @@ pub enum Value {
     Bool(bool),
     Float(f32),
     Double(f64),
+    Array(Vec<Value>),     // 固定长度的同类型数组
+    List(Vec<Value>),      // 动态长度的异类型列表
 }
 
 impl Value {
+    fn get_type_name(&self) -> String {
+        match self {
+            Value::Int(_) => "int".to_string(),
+            Value::Str(_) => "str".to_string(),
+            Value::Bool(_) => "bool".to_string(),
+            Value::Float(_) => "float".to_string(),
+            Value::Double(_) => "double".to_string(),
+            Value::Array(_) => "array".to_string(),
+            Value::List(_) => "list".to_string(),
+        }
+    }
+    
     fn to_string(&self) -> String {
         match self {
             Value::Int(n) => n.to_string(),
@@ -19,6 +33,14 @@ impl Value {
             Value::Bool(b) => b.to_string(),
             Value::Float(f) => f.to_string(),
             Value::Double(d) => d.to_string(),
+            Value::Array(arr) => {
+                let elements: Vec<String> = arr.iter().map(|v| v.to_string()).collect();
+                format!("[{}]", elements.join(", "))
+            },
+            Value::List(lst) => {
+                let elements: Vec<String> = lst.iter().map(|v| v.to_string()).collect();
+                format!("[{}]", elements.join(", "))
+            },
         }
     }
     
@@ -29,6 +51,8 @@ impl Value {
             Value::Bool(b) => if *b { 1.0 } else { 0.0 },
             Value::Float(f) => *f as f64,
             Value::Double(d) => *d,
+            Value::Array(_) => 0.0,  // 数组转为数字时返回0
+            Value::List(_) => 0.0,   // 列表转为数字时返回0
         }
     }
     
@@ -39,6 +63,8 @@ impl Value {
             Value::Bool(_) => Type::Bool,
             Value::Float(_) => Type::Float,
             Value::Double(_) => Type::Double,
+            Value::Array(_) => Type::Any,  // 数组类型
+            Value::List(_) => Type::Any,   // 列表类型
         }
     }
     
@@ -50,6 +76,8 @@ impl Value {
             (Value::Bool(_), Type::Bool) => Ok(self.clone()),
             (Value::Float(_), Type::Float) => Ok(self.clone()),
             (Value::Double(_), Type::Double) => Ok(self.clone()),
+            (Value::Array(_), Type::Any) => Ok(self.clone()),  // 数组保持不变
+            (Value::List(_), Type::Any) => Ok(self.clone()),   // 列表保持不变
             
             // Int to other types
             (Value::Int(n), Type::Float) => Ok(Value::Float(*n as f32)),
@@ -99,18 +127,23 @@ impl Value {
             (Value::Bool(b), Type::Double) => Ok(Value::Double(if *b { 1.0 } else { 0.0 })),
             (Value::Bool(b), Type::Str) => Ok(Value::Str(b.to_string())),
             
+            // Array/List to String
+            (Value::Array(_), Type::Str) => Ok(Value::Str(self.to_string())),
+            (Value::List(_), Type::Str) => Ok(Value::Str(self.to_string())),
+            
             // Int to Int (already handled above, but keeping for completeness)
             _ => Err(format!("Cannot convert {:?} to {:?}", self.get_type(), target_type)),
         }
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct Function {
     pub params: Vec<String>,
     pub body: Vec<ASTNode>,
-    pub is_expr: bool,
-    pub param_types: Vec<String>,
+    pub is_expr: bool,        // 标记是否为表达式函数
+    pub param_types: Vec<String>,  // 参数类型信息
 }
 
 pub struct Interpreter {
@@ -200,6 +233,90 @@ impl Interpreter {
                     }
                 }
             }
+            ASTNode::ArrayDecl(name, element_type, size, init_values) => {
+                // Create an array with the specified size and initialize it
+                let mut array_elements = Vec::new();
+                let size = *size; // Dereference size
+                
+                // If we have initialization values
+                if !init_values.is_empty() {
+                    // Check if we have a single value to initialize all elements
+                    if init_values.len() == 1 {
+                        let init_value = self.evaluate_value(&init_values[0]);
+                        // Convert to the specified type if needed
+                        let typed_value = match init_value.convert_to(&element_type) {
+                            Ok(v) => v,
+                            Err(e) => {
+                                eprintln!("Type error in array initialization: {}", e);
+                                std::process::exit(1);
+                            }
+                        };
+                        
+                        // Initialize all elements with this value
+                        for _ in 0..size {
+                            array_elements.push(typed_value.clone());
+                        }
+                    } else {
+                        // Initialize with provided values
+                        for i in 0..std::cmp::min(size, init_values.len()) {
+                            let init_value = self.evaluate_value(&init_values[i]);
+                            // Convert to the specified type if needed
+                            let typed_value = match init_value.convert_to(&element_type) {
+                                Ok(v) => v,
+                                Err(e) => {
+                                    eprintln!("Type error in array initialization: {}", e);
+                                    std::process::exit(1);
+                                }
+                            };
+                            array_elements.push(typed_value);
+                        }
+                        
+                        // If we have fewer values than size, fill the rest with default values
+                        if init_values.len() < size {
+                            let default_value = match element_type {
+                                Type::Int => Value::Int(0),
+                                Type::Float => Value::Float(0.0),
+                                Type::Double => Value::Double(0.0),
+                                Type::Bool => Value::Bool(false),
+                                Type::Str => Value::Str("".to_string()),
+                                Type::Any => Value::Int(0), // Default to 0 for any type
+                            };
+                            
+                            for _ in init_values.len()..size {
+                                array_elements.push(default_value.clone());
+                            }
+                        }
+                    }
+                } else {
+                    // No initialization values, initialize with default values
+                    let default_value = match element_type {
+                        Type::Int => Value::Int(0),
+                        Type::Float => Value::Float(0.0),
+                        Type::Double => Value::Double(0.0),
+                        Type::Bool => Value::Bool(false),
+                        Type::Str => Value::Str("".to_string()),
+                        Type::Any => Value::Int(0), // Default to 0 for any type
+                    };
+                    
+                    for _ in 0..size {
+                        array_elements.push(default_value.clone());
+                    }
+                }
+                
+                // Store the array with its element type as the variable type
+                self.variables.insert(name.clone(), (Value::Array(array_elements), Some(element_type.clone())));
+            }
+            ASTNode::ListDecl(name, init_values) => {
+                // Create a list with the provided initialization values
+                let mut list_elements = Vec::new();
+                
+                for init_value in init_values {
+                    let value = self.evaluate_value(init_value);
+                    list_elements.push(value);
+                }
+                
+                self.variables.insert(name.clone(), (Value::List(list_elements), None));
+            }
             ASTNode::Assign(name, expr) => {
                 let new_value = self.evaluate_value(expr);
                 
@@ -225,6 +342,86 @@ impl Interpreter {
                     self.variables.insert(name.clone(), (new_value, None));
                 }
             }
+            ASTNode::IndexAssign(array_expr, index_expr, value_expr, pos) => {
+                // Handle array/list index assignment: array[index] = value
+                let array_identifier = match array_expr.as_ref() {
+                    ASTNode::Identifier(name, _) => name,
+                    _ => return, // Not a valid array identifier
+                };
+                
+                let index_val = self.evaluate_value(index_expr);
+                let value_to_assign = self.evaluate_value(value_expr);
+                let index = index_val.to_f64() as usize;
+                
+                // Get the current array/list from variables
+                if let Some((current_value, var_type)) = self.variables.get(array_identifier).cloned() {
+                    let new_value = match &current_value {
+                        Value::Array(arr) => {
+                            if index < arr.len() {
+                                // For arrays, check type compatibility based on the variable's type
+                                if let Some(expected_type) = &var_type {
+                                    // For array variables, the type is the element type
+                                    match value_to_assign.convert_to(expected_type) {
+                                        Ok(converted_value) => {
+                                            let mut new_arr = arr.clone();
+                                            new_arr[index] = converted_value;
+                                            Value::Array(new_arr)
+                                        }
+                                        Err(_) => {
+                                            // Create a proper compiler error with full formatting
+                                            let error_msg = error_messages::array_type_error(
+                                                &expected_type.to_string(), 
+                                                &value_to_assign.get_type_name()
+                                            );
+                                            
+                                            let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                                                .unwrap_or(&String::new()).clone();
+                                            
+                                            let compiler_error = CompilerError::new(
+                                                error_msg,
+                                                pos.line,
+                                                pos.column,
+                                                self.file_path.clone(),
+                                                source_line,
+                                            )
+                                            .with_help(error_messages::help_array_assignment())
+                                            .with_example(error_messages::example_array_assignment());
+                                            
+                                            eprintln!("{}", compiler_error);
+                                            std::process::exit(1);
+                                        }
+                                    }
+                                } else {
+                                    // If no type info, just assign
+                                    let mut new_arr = arr.clone();
+                                    new_arr[index] = value_to_assign;
+                                    Value::Array(new_arr)
+                                }
+                            } else {
+                                // Index out of bounds - ignore or handle error
+                                current_value
+                            }
+                        }
+                        Value::List(lst) => {
+                            if index < lst.len() {
+                                let mut new_lst = lst.clone();
+                                new_lst[index] = value_to_assign;
+                                Value::List(new_lst)
+                            } else {
+                                // Index out of bounds - ignore or handle error
+                                current_value
+                            }
+                        }
+                        _ => {
+                            // Not an array or list - can't do index assignment
+                            current_value
+                        }
+                    };
+                    
+                    // Update the variable with the modified array/list
+                    self.variables.insert(array_identifier.clone(), (new_value, var_type));
+                }
+            }
             ASTNode::For(var, range_expr, body) => {
                 // 解析range表达式，支持 range(start, end) 或 start..end 格式
                 if let ASTNode::BinaryOp(left, op, right) = range_expr.as_ref() {
@@ -241,7 +438,7 @@ impl Interpreter {
                             }
                             i += 1;
                         }
-                    } else if let ASTNode::Identifier(func_name) = range_expr.as_ref() {
+                    } else if let ASTNode::Identifier(func_name, _) = range_expr.as_ref() {
                         if func_name == "range" {
                             // 这里需要更复杂的逻辑来处理 range(start, end)
                             // 暂时使用简单的实现
@@ -300,6 +497,35 @@ impl Interpreter {
                     }
                 }
             }
+            ASTNode::While(condition, body) => {
+                loop {
+                    let cond_val = self.evaluate_expression(condition);
+                    if cond_val == 0.0 {
+                        break;
+                    }
+                    for stmt in body.iter() {
+                        self.evaluate(stmt);
+                    }
+                }
+            }
+            ASTNode::Input(prompt, var_name) => {
+                use std::io::{self, Write};
+                
+                let prompt_str = self.evaluate_print_expression(prompt);
+                print!("{}", prompt_str);
+                io::stdout().flush().unwrap();
+                
+                let mut input = String::new();
+                io::stdin().read_line(&mut input).expect("Failed to read input");
+                let input = input.trim();
+                
+                // Try to parse as number, otherwise store as string
+                if let Ok(num) = input.parse::<f64>() {
+                    self.variables.insert(var_name.clone(), (Value::Double(num), None));
+                } else {
+                    self.variables.insert(var_name.clone(), (Value::Str(input.to_string()), None));
+                }
+            }
             ASTNode::Function(name, params, body) => {
                 let function = Function {
                     params: params.clone(),
@@ -337,23 +563,52 @@ impl Interpreter {
             ASTNode::Number(n) => Value::Double(*n),
             ASTNode::String(s) => Value::Str(s.clone()),
             ASTNode::Bool(b) => Value::Bool(*b),
-            ASTNode::Identifier(name) => {
+            ASTNode::Identifier(name, pos) => {
                 self.variables.get(name).map(|(v, _)| v.clone()).unwrap_or_else(|| {
                     // Check if it's a return value from a function
                     if name == "__return_value__" {
                         return Value::Double(0.0);
                     }
-                    // 获取当前位置信息（这里使用1,1作为默认值，实际需要更精确的位置）
-                    let error = format_undefined_identifier_error(
+                    // 使用标识符节点中的位置信息
+                    let error = create_undefined_identifier_error(
                         name,
-                        1, // 需要获取实际行号
-                        1, // 需要获取实际列号
+                        pos.line,
+                        pos.column,
                         &self.file_path,
-                        self.source_lines.get(0).unwrap_or(&String::new())
+                        self.source_lines.get(pos.line.saturating_sub(1)).unwrap_or(&String::new())
                     );
                     eprintln!("{}", error);
                     std::process::exit(1);
                 })
+            }
+            ASTNode::IndexAccess(array_expr, index_expr) => {
+                let array_val = self.evaluate_value(array_expr);
+                let index_val = self.evaluate_value(index_expr);
+                
+                let index = index_val.to_f64() as usize;
+                
+                match array_val {
+                    Value::Array(arr) => {
+                        if index < arr.len() {
+                            arr[index].clone()
+                        } else {
+                            // Index out of bounds - return 0
+                            Value::Double(0.0)
+                        }
+                    }
+                    Value::List(lst) => {
+                        if index < lst.len() {
+                            lst[index].clone()
+                        } else {
+                            // Index out of bounds - return 0
+                            Value::Double(0.0)
+                        }
+                    }
+                    _ => {
+                        // Not an array or list - return 0
+                        Value::Double(0.0)
+                    }
+                }
             }
             ASTNode::FunctionCall(name, args) => {
                 self.execute_function_call(name, args);
@@ -395,9 +650,18 @@ impl Interpreter {
                             Value::Double(0.0)
                         }
                     }
+                    "==" => Value::Bool(left_f64 == right_f64),
                     "<" => Value::Bool(left_f64 < right_f64),
                     ">" => Value::Bool(left_f64 > right_f64),
                     _ => Value::Double(0.0),
+                }
+            }
+            ASTNode::IfExpr(condition, then_expr, else_expr) => {
+                let cond_val = self.evaluate_expression(condition);
+                if cond_val != 0.0 {
+                    self.evaluate_value(then_expr)
+                } else {
+                    self.evaluate_value(else_expr)
                 }
             }
             _ => Value::Double(0.0),
@@ -409,15 +673,15 @@ impl Interpreter {
             ASTNode::String(s) => s.clone(),
             ASTNode::Number(n) => n.to_string(),
             ASTNode::Bool(b) => b.to_string(),
-            ASTNode::Identifier(name) => {
+            ASTNode::Identifier(name, pos) => {
                 self.variables.get(name).map(|(v, _)| v.to_string()).unwrap_or_else(|| {
-                    // 获取当前位置信息（这里使用1,1作为默认值，实际需要更精确的位置）
-                    let error = format_undefined_identifier_error(
+                    // 使用标识符节点中的位置信息
+                    let error = create_undefined_identifier_error(
                         name,
-                        1, // 需要获取实际行号
-                        1, // 需要获取实际列号
+                        pos.line,
+                        pos.column,
                         &self.file_path,
-                        self.source_lines.get(0).unwrap_or(&String::new())
+                        self.source_lines.get(pos.line.saturating_sub(1)).unwrap_or(&String::new())
                     );
                     eprintln!("{}", error);
                     std::process::exit(1);
@@ -458,6 +722,7 @@ impl Interpreter {
                             "0".to_string()
                         }
                     }
+                    "==" => (left_f64 == right_f64).to_string(),
                     "<" => (left_f64 < right_f64).to_string(),
                     ">" => (left_f64 > right_f64).to_string(),
                     _ => "0".to_string(),
@@ -467,6 +732,14 @@ impl Interpreter {
                 self.execute_function_call(name, args);
                 // Return the function's return value, or "0" if no return
                 self.variables.get("__return_value__").map(|(v, _)| v.to_string()).unwrap_or_else(|| "0".to_string())
+            }
+            ASTNode::IfExpr(condition, then_expr, else_expr) => {
+                let cond_val = self.evaluate_expression(condition);
+                if cond_val != 0.0 {
+                    self.evaluate_print_expression(then_expr)
+                } else {
+                    self.evaluate_print_expression(else_expr)
+                }
             }
             _ => "0".to_string(),
         }
@@ -479,17 +752,26 @@ impl Interpreter {
     fn execute_function_call(&mut self, name: &str, args: &[ASTNode]) {
         if let Some(function) = self.functions.get(name).cloned() {
             if args.len() != function.params.len() {
-                eprintln!("Error: Function {} expects {} arguments, got {}", name, function.params.len(), args.len());
+                eprintln!("{}", error_messages::function_arity_error(name, function.params.len(), args.len()));
                 return;
             }
             
-            // Save current variable scope
-            let saved_variables = self.variables.clone();
+            // 先评估所有参数（在当前作用域中）
+            let mut arg_values = Vec::new();
+            for arg in args.iter() {
+                arg_values.push(self.evaluate_value(arg));
+            }
             
-            // Set function parameters
-            for (param, arg) in function.params.iter().zip(args.iter()) {
-                let value = self.evaluate_value(arg);
-                self.variables.insert(param.clone(), (value, None));
+            // Save current variable scope
+            let mut saved_variables = self.variables.clone();
+            
+            // Remove return value from saved scope to start with a clean state
+            saved_variables.remove("__return_value__");
+            
+            // Create a clean scope with only function parameters
+            self.variables.clear();
+            for (param, value) in function.params.iter().zip(arg_values.iter()) {
+                self.variables.insert(param.clone(), (value.clone(), None));
             }
             
             // Execute function body
@@ -502,14 +784,18 @@ impl Interpreter {
                 }
             }
             
-            // Restore variable scope (but keep return value if it exists)
+            // Get return value before restoring scope
             let return_value = self.variables.get("__return_value__").map(|(v, _)| v.clone());
+            
+            // Restore variable scope
             self.variables = saved_variables;
+            
+            // Set return value in the restored scope
             if let Some(value) = return_value {
                 self.variables.insert("__return_value__".to_string(), (value, None));
             }
         } else {
-            eprintln!("Error: Function '{}' is not defined", name);
+            eprintln!("{}", error_messages::undefined_function(name));
         }
     }
 }

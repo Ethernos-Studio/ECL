@@ -7,6 +7,8 @@ pub enum Token {
     In,
     If,
     Else,
+    While,
+    Input,
     Func,
     Expr,
     Return,
@@ -16,19 +18,24 @@ pub enum Token {
     RightParen,
     LeftBrace,
     RightBrace,
+    LeftBracket,    // [
+    RightBracket,   // ]
     Semicolon,
     Comma,
     Colon,
     Equal,
+    EqualEqual,
     Plus,
     Minus,
     Multiply,
     Divide,
-    Less,
-    Greater,
+    Less,           // 已使用，用于比较操作
+    Greater,        // 已使用，用于比较操作
+    LessEqual,      // <=
+    GreaterEqual,   // >=
     Range,  // .. 运算符
-    LessThan,
-    GreaterThan,
+    LessThan,       // 已使用，用于类型声明 <type>name
+    GreaterThan,    // 已使用，用于类型声明 <type>name
     // 类型关键字
     Int,
     Str,

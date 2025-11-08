@@ -1,4 +1,5 @@
 use crate::token::Token;
+use crate::error::error_messages;
 
 pub struct Lexer {
     input: Vec<char>,
@@ -67,9 +68,16 @@ impl Lexer {
                 Token::Colon
             }
             '=' => {
-                self.position += 1;
-                self.column += 1;
-                Token::Equal
+                // Check for '=='
+                if self.position + 1 < self.input.len() && self.input[self.position + 1] == '=' {
+                    self.position += 2;
+                    self.column += 2;
+                    Token::EqualEqual
+                } else {
+                    self.position += 1;
+                    self.column += 1;
+                    Token::Equal
+                }
             }
             '+' => {
                 self.position += 1;
@@ -100,18 +108,42 @@ impl Lexer {
                 } else {
                     self.position += 1;
                     self.column += 1;
-                    Token::Error("Unexpected character: '.'. Did you mean '..' for range?".to_string())
+                    Token::Error(error_messages::unexpected_dot())
                 }
             }
             '<' => {
                 self.position += 1;
                 self.column += 1;
-                Token::LessThan
+                // Check for <=
+                if self.position < self.input.len() && self.input[self.position] == '=' {
+                    self.position += 1;
+                    self.column += 1;
+                    Token::LessEqual
+                } else {
+                    Token::LessThan
+                }
             }
             '>' => {
                 self.position += 1;
                 self.column += 1;
-                Token::GreaterThan
+                // Check for >=
+                if self.position < self.input.len() && self.input[self.position] == '=' {
+                    self.position += 1;
+                    self.column += 1;
+                    Token::GreaterEqual
+                } else {
+                    Token::GreaterThan
+                }
+            }
+            '[' => {
+                self.position += 1;
+                self.column += 1;
+                Token::LeftBracket
+            }
+            ']' => {
+                self.position += 1;
+                self.column += 1;
+                Token::RightBracket
             }
             '"' => {
                 self.position += 1;
@@ -127,7 +159,7 @@ impl Lexer {
                 let error_char = ch;
                 self.position += 1;
                 self.column += 1;
-                Token::Error(format!("Unexpected character: '{}' at line {}, column {}", error_char, self.line, self.column - 1))
+                Token::Error(error_messages::unexpected_character(error_char, self.line, self.column - 1))
             }
         }
     }
@@ -199,6 +231,8 @@ impl Lexer {
             "in" => Token::In,
             "if" => Token::If,
             "else" => Token::Else,
+            "while" => Token::While,
+            "input" => Token::Input,
             "func" => Token::Func,
             "expr" => Token::Expr,
             "return" => Token::Return,
