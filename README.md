@@ -192,10 +192,31 @@ for i in 1..5 {
 - 输出缓冲机制
 - 源码行信息追踪（便于错误定位）
 
-## 待办事项
-- [ ] 添加更多数学函数库
-- [ ] 支持数组和字典类型
-- [ ] 实现模块化系统
-- [ ] 添加字符串处理函数
-- [ ] 支持文件I/O操作
-- [ ] 添加单元测试框架
+## 文档
+
+完整的用户文档请参见 [docs/](./docs/) 目录，包含以下内容：
+
+- [简介](./docs/introduction.md) - ECL 语言概述
+- [安装与配置](./docs/installation.md) - 如何安装和配置 ECL
+- [快速开始](./docs/quickstart.md) - 快速入门指南
+- [基本语法](./docs/syntax.md) - ECL 语言的基本语法
+- [数据类型](./docs/types.md) - 数据类型系统详解
+- [变量与常量](./docs/variables.md) - 变量和常量的声明和使用
+- [函数](./docs/functions.md) - 函数定义和调用
+- [控制流](./docs/control-flow.md) - 条件语句和循环语句
+- [表达式函数](./docs/expr-functions.md) - 表达式函数的使用
+- [数据结构](./docs/data-structures.md) - 数组和列表操作
+- [类型转换](./docs/type-conversion.md) - 类型转换机制
+- [输入输出](./docs/io.md) - 输入输出操作
+- [REPL 环境](./docs/repl.md) - 交互式环境使用
+- [调试与错误处理](./docs/debugging.md) - 调试功能和错误处理
+- [示例与最佳实践](./docs/examples.md) - 示例代码和最佳实践
+
+## 待办事项
+- [ ] 添加更多数学函数库
+- [ ] 支持模块化系统
+- [ ] 添加字符串处理函数
+- [ ] 支持文件I/O操作
+- [ ] 添加单元测试框架
+- [ ] 实现更复杂的类型系统
+- [ ] 添加标准库支持

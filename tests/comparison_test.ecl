@@ -1,6 +1,6 @@
 // 测试比较操作是否仍能工作
 var x = 5 < 10;
-println("x = " + x);
+println("x = " + <str>x);
 
 // 测试类型转换
 var a = 123;

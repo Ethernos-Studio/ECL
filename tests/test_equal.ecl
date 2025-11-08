@@ -4,8 +4,8 @@ var b = 5;
 var c = 10;
 
 println("测试相等性:");
-println("5 == 5: " + (a == b));
-println("5 == 10: " + (a == c));
+println("5 == 5: " + <str>(a == b));
+println("5 == 10: " + <str>(a == c));
 
 // 在if语句中使用 ==
 if (a == b) {

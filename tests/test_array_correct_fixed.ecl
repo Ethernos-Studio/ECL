@@ -18,8 +18,8 @@ arr[3] = true;
 println("成功将布尔值赋值给arr[3]");
 
 println("数组元素的值:");
-println("arr[0] = " + arr[0]);
-println("arr[1] = " + arr[1]);
-println("arr[2] = " + arr[2]);
-println("arr[3] = " + arr[3]);
-println("arr[4] = " + arr[4]);
+println("arr[0] = " + <str>arr[0]);
+println("arr[1] = " + <str>arr[1]);
+println("arr[2] = " + <str>arr[2]);
+println("arr[3] = " + <str>arr[3]);
+println("arr[4] = " + <str>arr[4]);

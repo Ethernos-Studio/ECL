@@ -2,7 +2,7 @@
 var x = 5;
 var y = 10;
 var z = x < y;
-println("x < y = " + z);
+println("x < y = " + <str>z);
 
 // 测试类型转换
 var a = 123;

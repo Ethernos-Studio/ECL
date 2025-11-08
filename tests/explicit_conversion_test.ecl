@@ -8,7 +8,7 @@ println(result);
 var a = 42;
 var b = 58;
 var sum = a + b;
-println("Sum: " + sum);
+println("Sum: " + <str>sum);
 
 // 测试字符串拼接
 var str1 = "Hello, ";

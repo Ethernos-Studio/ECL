@@ -15,3 +15,5 @@ var str1 = "Hello, ";
 var str2 = "World!";
 var greeting = str1 + str2;
 println(greeting);
+
+print(1 + "1") //报错
