@@ -424,7 +424,7 @@ impl Interpreter {
             }
             ASTNode::For(var, range_expr, body) => {
                 // 解析range表达式，支持 range(start, end) 或 start..end 格式
-                if let ASTNode::BinaryOp(left, op, right) = range_expr.as_ref() {
+                if let ASTNode::BinaryOp(left, op, right, _) = range_expr.as_ref() {
                     if op == ".." {
                         // 处理 start..end 格式
                         let start_val = self.evaluate_expression(left);
@@ -581,7 +581,7 @@ impl Interpreter {
                     std::process::exit(1);
                 })
             }
-            ASTNode::IndexAccess(array_expr, index_expr) => {
+            ASTNode::IndexAccess(array_expr, index_expr, pos) => {
                 let array_val = self.evaluate_value(array_expr);
                 let index_val = self.evaluate_value(index_expr);
                 
@@ -592,16 +592,46 @@ impl Interpreter {
                         if index < arr.len() {
                             arr[index].clone()
                         } else {
-                            // Index out of bounds - return 0
-                            Value::Double(0.0)
+                            // Index out of bounds - report error with standard compiler error format
+                            let error_msg = error_messages::array_index_out_of_bounds(index, arr.len());
+                            let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                                .unwrap_or(&String::new()).clone();
+                            
+                            let compiler_error = CompilerError::new(
+                                error_msg,
+                                pos.line,
+                                pos.column,
+                                self.file_path.clone(),
+                                source_line,
+                            )
+                            .with_help(error_messages::help_array_bounds())
+                            .with_example(error_messages::example_array_bounds());
+                            
+                            eprintln!("{}", compiler_error);
+                            std::process::exit(1);
                         }
                     }
                     Value::List(lst) => {
                         if index < lst.len() {
                             lst[index].clone()
                         } else {
-                            // Index out of bounds - return 0
-                            Value::Double(0.0)
+                            // Index out of bounds - report error with standard compiler error format
+                            let error_msg = error_messages::list_index_out_of_bounds(index, lst.len());
+                            let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                                .unwrap_or(&String::new()).clone();
+                            
+                            let compiler_error = CompilerError::new(
+                                error_msg,
+                                pos.line,
+                                pos.column,
+                                self.file_path.clone(),
+                                source_line,
+                            )
+                            .with_help(error_messages::help_array_bounds())
+                            .with_example(error_messages::example_array_bounds());
+                            
+                            eprintln!("{}", compiler_error);
+                            std::process::exit(1);
                         }
                     }
                     _ => {
@@ -615,45 +645,97 @@ impl Interpreter {
                 // Return the function's return value, or 0.0 if no return
                 self.variables.get("__return_value__").map(|(v, _)| v.clone()).unwrap_or(Value::Double(0.0))
             }
-            ASTNode::BinaryOp(left, op, right) => {
+            ASTNode::BinaryOp(left, op, right, pos) => {
                 let left_val = self.evaluate_value(left);
                 let right_val = self.evaluate_value(right);
                 
-                // Handle string concatenation
+                // Handle string concatenation - only allow string + string
                 if op == "+" {
                     match (&left_val, &right_val) {
                         (Value::Str(s1), Value::Str(s2)) => {
                             return Value::Str(format!("{}{}", s1, s2));
                         }
-                        (Value::Str(s), other) => {
-                            return Value::Str(format!("{}{}", s, other.to_string()));
-                        }
-                        (other, Value::Str(s)) => {
-                            return Value::Str(format!("{}{}", other.to_string(), s));
-                        }
+                        // For other types, we now require explicit conversion
                         _ => {}
                     }
                 }
                 
                 // For other operations, convert to f64
-                let left_f64 = left_val.to_f64();
-                let right_f64 = right_val.to_f64();
-                
-                match op.as_str() {
-                    "+" => Value::Double(left_f64 + right_f64),
-                    "-" => Value::Double(left_f64 - right_f64),
-                    "*" => Value::Double(left_f64 * right_f64),
-                    "/" => {
-                        if right_f64 != 0.0 {
-                            Value::Double(left_f64 / right_f64)
-                        } else {
-                            Value::Double(0.0)
+                // Check if both operands are numeric types before doing arithmetic
+                match (&left_val, &right_val) {
+                    (Value::Int(_) | Value::Float(_) | Value::Double(_), 
+                     Value::Int(_) | Value::Float(_) | Value::Double(_)) => {
+                        let left_f64 = left_val.to_f64();
+                        let right_f64 = right_val.to_f64();
+                        
+                        match op.as_str() {
+                            "+" => Value::Double(left_f64 + right_f64),
+                            "-" => Value::Double(left_f64 - right_f64),
+                            "*" => Value::Double(left_f64 * right_f64),
+                            "/" => {
+                                if right_f64 != 0.0 {
+                                    Value::Double(left_f64 / right_f64)
+                                } else {
+                                    Value::Double(0.0)
+                                }
+                            }
+                            "==" => Value::Bool(left_f64 == right_f64),
+                            "<" => Value::Bool(left_f64 < right_f64),
+                            ">" => Value::Bool(left_f64 > right_f64),
+                            _ => Value::Double(0.0),
                         }
                     }
-                    "==" => Value::Bool(left_f64 == right_f64),
-                    "<" => Value::Bool(left_f64 < right_f64),
-                    ">" => Value::Bool(left_f64 > right_f64),
-                    _ => Value::Double(0.0),
+                    // Handle string concatenation with explicit conversion requirement
+                    (Value::Str(_), Value::Str(_)) if op == "+" => {
+                        // This case is already handled above
+                        Value::Str(format!("{}{}", left_val.to_string(), right_val.to_string()))
+                    }
+                    // All other combinations are type errors
+                    _ => {
+                        // Create a type error for incompatible operations
+                        let error_msg = format!("Type error: cannot perform operation '{}' between '{}' and '{}'",
+                                              op, left_val.get_type_name(), right_val.get_type_name());
+                        let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                            .unwrap_or(&String::new()).clone();
+                        
+                        let compiler_error = CompilerError::new(
+                            error_msg,
+                            pos.line,
+                            pos.column,
+                            self.file_path.clone(),
+                            source_line,
+                        )
+                        .with_help("help: ensure both operands are of compatible types for the operation".to_string())
+                        .with_example("example: for arithmetic operations, both operands should be numeric types".to_string());
+                        
+                        eprintln!("{}", compiler_error);
+                        std::process::exit(1);
+                    }
+                }
+            }
+            ASTNode::TypeConversion(target_type, expr, pos) => {
+                let value = self.evaluate_value(expr);
+                match value.convert_to(target_type) {
+                    Ok(converted_value) => converted_value,
+                    Err(error_msg) => {
+                        // Create a proper compiler error with full formatting
+                        let error_msg = format!("Type conversion failed: {}", error_msg);
+                        let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                            .unwrap_or(&String::new()).clone();
+                        
+                        let compiler_error = CompilerError::new(
+                            error_msg,
+                            pos.line,
+                            pos.column,
+                            self.file_path.clone(),
+                            source_line,
+                        )
+                        .with_help(error_messages::help_array_type())
+                        .with_example(error_messages::example_array_type());
+                        
+                        eprintln!("{}", compiler_error);
+                        std::process::exit(1);
+                    }
                 }
             }
             ASTNode::IfExpr(condition, then_expr, else_expr) => {
@@ -687,51 +769,103 @@ impl Interpreter {
                     std::process::exit(1);
                 })
             }
-            ASTNode::BinaryOp(left, op, right) => {
+            ASTNode::BinaryOp(left, op, right, pos) => {
                 let left_val = self.evaluate_value(left);
                 let right_val = self.evaluate_value(right);
                 
-                // Handle string concatenation
+                // Handle string concatenation - only allow string + string
                 if op == "+" {
                     match (&left_val, &right_val) {
                         (Value::Str(s1), Value::Str(s2)) => {
                             return format!("{}{}", s1, s2);
                         }
-                        (Value::Str(s), other) => {
-                            return format!("{}{}", s, other.to_string());
-                        }
-                        (other, Value::Str(s)) => {
-                            return format!("{}{}", other.to_string(), s);
-                        }
+                        // For other types, we now require explicit conversion
                         _ => {}
                     }
                 }
                 
                 // For other operations, convert to f64
-                let left_f64 = left_val.to_f64();
-                let right_f64 = right_val.to_f64();
-                
-                match op.as_str() {
-                    "+" => (left_f64 + right_f64).to_string(),
-                    "-" => (left_f64 - right_f64).to_string(),
-                    "*" => (left_f64 * right_f64).to_string(),
-                    "/" => {
-                        if right_f64 != 0.0 {
-                            (left_f64 / right_f64).to_string()
-                        } else {
-                            "0".to_string()
+                // Check if both operands are numeric types before doing arithmetic
+                match (&left_val, &right_val) {
+                    (Value::Int(_) | Value::Float(_) | Value::Double(_), 
+                     Value::Int(_) | Value::Float(_) | Value::Double(_)) => {
+                        let left_f64 = left_val.to_f64();
+                        let right_f64 = right_val.to_f64();
+                        
+                        match op.as_str() {
+                            "+" => (left_f64 + right_f64).to_string(),
+                            "-" => (left_f64 - right_f64).to_string(),
+                            "*" => (left_f64 * right_f64).to_string(),
+                            "/" => {
+                                if right_f64 != 0.0 {
+                                    (left_f64 / right_f64).to_string()
+                                } else {
+                                    "0".to_string()
+                                }
+                            }
+                            "==" => (left_f64 == right_f64).to_string(),
+                            "<" => (left_f64 < right_f64).to_string(),
+                            ">" => (left_f64 > right_f64).to_string(),
+                            _ => "0".to_string(),
                         }
                     }
-                    "==" => (left_f64 == right_f64).to_string(),
-                    "<" => (left_f64 < right_f64).to_string(),
-                    ">" => (left_f64 > right_f64).to_string(),
-                    _ => "0".to_string(),
+                    // Handle string concatenation with explicit conversion requirement
+                    (Value::Str(_), Value::Str(_)) if op == "+" => {
+                        // This case is already handled above
+                        format!("{}{}", left_val.to_string(), right_val.to_string())
+                    }
+                    // All other combinations are type errors
+                    _ => {
+                        // Create a type error for incompatible operations
+                        let error_msg = format!("Type error: cannot perform operation '{}' between '{}' and '{}'",
+                                              op, left_val.get_type_name(), right_val.get_type_name());
+                        let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                            .unwrap_or(&String::new()).clone();
+                        
+                        let compiler_error = CompilerError::new(
+                            error_msg,
+                            pos.line,
+                            pos.column,
+                            self.file_path.clone(),
+                            source_line,
+                        )
+                        .with_help("help: ensure both operands are of compatible types for the operation".to_string())
+                        .with_example("example: for arithmetic operations, both operands should be numeric types".to_string());
+                        
+                        eprintln!("{}", compiler_error);
+                        std::process::exit(1);
+                    }
                 }
             }
             ASTNode::FunctionCall(name, args) => {
                 self.execute_function_call(name, args);
                 // Return the function's return value, or "0" if no return
                 self.variables.get("__return_value__").map(|(v, _)| v.to_string()).unwrap_or_else(|| "0".to_string())
+            }
+            ASTNode::TypeConversion(target_type, expr, pos) => {
+                let value = self.evaluate_value(expr);
+                match value.convert_to(target_type) {
+                    Ok(converted_value) => converted_value.to_string(),
+                    Err(error_msg) => {
+                        // Create a proper compiler error with full formatting
+                        let error_msg = format!("Type conversion failed: {}", error_msg);
+                        let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                            .unwrap_or(&String::new()).clone();
+                        
+                        let compiler_error = CompilerError::new(
+                            error_msg,
+                            pos.line,
+                            pos.column,
+                            self.file_path.clone(),
+                            source_line,
+                        )
+                        .with_help(error_messages::help_array_type())
+                        .with_example(error_messages::example_array_type());
+                        
+                        eprintln!("{}", compiler_error);
+                        std::process::exit(1);
+                    }
+                }
             }
             ASTNode::IfExpr(condition, then_expr, else_expr) => {
                 let cond_val = self.evaluate_expression(condition);

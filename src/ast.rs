@@ -45,7 +45,7 @@ pub enum ASTNode {
     // 列表声明：var name = []
     ListDecl(String, Vec<ASTNode>), // name, init_values
     // 数组/列表索引访问：name[index]
-    IndexAccess(Box<ASTNode>, Box<ASTNode>), // array/list expression, index expression
+    IndexAccess(Box<ASTNode>, Box<ASTNode>, Position), // array/list expression, index expression, position
     // 数组/列表索引赋值：name[index] = value
     IndexAssign(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>, Position), // array/list expression, index expression, value expression, position
     // 新的for循环格式：for i in range(start, end) { body }
@@ -60,7 +60,7 @@ pub enum ASTNode {
     Number(f64),
     String(String),
     Bool(bool),
-    BinaryOp(Box<ASTNode>, String, Box<ASTNode>),
+    BinaryOp(Box<ASTNode>, String, Box<ASTNode>, Position), // left operand, operator, right operand, position
     // 函数定义：func name(param1, param2) { body }
     Function(String, Vec<String>, Vec<ASTNode>),
     // 表达式函数定义：expr name(l a, r b) { body }
@@ -69,6 +69,8 @@ pub enum ASTNode {
     FunctionCall(String, Vec<ASTNode>),
     // 返回语句：return value
     Return(Box<ASTNode>),
-    // if表达式：if (condition) then_expr else else_expr
-    IfExpr(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
+    // if表达式：if (condition) then_expr else else_expr
+    IfExpr(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
+    // 类型转换：<type>value
+    TypeConversion(Type, Box<ASTNode>, Position),
 }

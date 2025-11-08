@@ -687,9 +687,11 @@ impl Parser {
                             }
                             
                             Some(ASTNode::IndexAssign(Box::new(identifier_node), Box::new(index_expr), Box::new(value_expr), pos))
-                        } else {
-                            // Just index access
-                            Some(ASTNode::IndexAccess(Box::new(identifier_node), Box::new(index_expr)))
+                        } else {
+                            // Just index access - need to get the position for the ']'
+                            let (line, column) = self.lexer.get_position();
+                            let pos = crate::ast::Position::new(line, column);
+                            Some(ASTNode::IndexAccess(Box::new(identifier_node), Box::new(index_expr), pos))
                         }
                     } else if matches!(self.current_token, Token::Equal) {
                     self.advance();
@@ -809,31 +811,64 @@ impl Parser {
         while let Some(op) = self.get_binary_op() {
             self.advance();
             let right = self.parse_expression()?;
-            left = ASTNode::BinaryOp(Box::new(left), op, Box::new(right));
+            let (line, column) = self.lexer.get_position();
+            let pos = crate::ast::Position::new(line, column);
+            left = ASTNode::BinaryOp(Box::new(left), op, Box::new(right), pos);
         }
         
         Some(left)
     }
     
-    fn parse_primary(&mut self) -> Option<ASTNode> {
-        match &self.current_token.clone() {
-            Token::Number(n) => {
-                let value = *n;
-                self.advance();
-                Some(ASTNode::Number(value))
-            }
-            Token::String(s) => {
-                let value = s.clone();
-                self.advance();
-                Some(ASTNode::String(value))
-            }
-            Token::True => {
-                self.advance();
-                Some(ASTNode::Bool(true))
-            }
-            Token::False => {
-                self.advance();
-                Some(ASTNode::Bool(false))
+    fn parse_primary(&mut self) -> Option<ASTNode> {
+        match &self.current_token.clone() {
+            Token::LessThan => {
+                // Handle type conversion: <type>expression
+                self.advance(); // consume '<'
+                
+                // Parse type name
+                let type_token = self.current_token.clone();
+                self.advance(); // consume type name
+                
+                if !matches!(self.current_token, Token::GreaterThan) {
+                    return None;
+                }
+                self.advance(); // consume '>'
+                
+                let conversion_type = match type_token {
+                    Token::Int => Type::Int,
+                    Token::Str => Type::Str,
+                    Token::Bool => Type::Bool,
+                    Token::Float => Type::Float,
+                    Token::Double => Type::Double,
+                    _ => return None, // Not a type conversion, it's a comparison
+                };
+                
+                // Get position after the '>'
+                let (line, column) = self.lexer.get_position();
+                let pos = crate::ast::Position::new(line, column);
+                
+                // Parse the expression to be converted
+                let expr = self.parse_primary()?; // Use parse_primary to handle nested conversions
+                
+                Some(ASTNode::TypeConversion(conversion_type, Box::new(expr), pos))
+            }
+            Token::Number(n) => {
+                let value = *n;
+                self.advance();
+                Some(ASTNode::Number(value))
+            }
+            Token::String(s) => {
+                let value = s.clone();
+                self.advance();
+                Some(ASTNode::String(value))
+            }
+            Token::True => {
+                self.advance();
+                Some(ASTNode::Bool(true))
+            }
+            Token::False => {
+                self.advance();
+                Some(ASTNode::Bool(false))
             }
             Token::If => {
                 // Parse if expression: if (condition) then_expr else else_expr
@@ -867,7 +902,9 @@ impl Parser {
                 // Handle unary minus (negative numbers)
                 self.advance();
                 let expr = self.parse_primary()?;
-                Some(ASTNode::BinaryOp(Box::new(ASTNode::Number(0.0)), "-".to_string(), Box::new(expr)))
+                let (line, column) = self.lexer.get_position();
+                let pos = crate::ast::Position::new(line, column);
+                Some(ASTNode::BinaryOp(Box::new(ASTNode::Number(0.0)), "-".to_string(), Box::new(expr), pos))
             }
             Token::Identifier(name) => {
                 let func_name = name.clone();
@@ -908,9 +945,13 @@ impl Parser {
                     if !matches!(self.current_token, Token::RightBracket) {
                         return None;
                     }
-                    self.advance(); // consume ']'
-                    
-                    Some(ASTNode::IndexAccess(Box::new(identifier_node), Box::new(index_expr)))
+                    self.advance(); // consume ']'
+                    
+                    // Get position for the index access
+                    let (line, column) = self.lexer.get_position();
+                    let pos = crate::ast::Position::new(line, column);
+                    
+                    Some(ASTNode::IndexAccess(Box::new(identifier_node), Box::new(index_expr), pos))
                 } else {
                     let (line, column) = self.lexer.get_position();
                     let pos = crate::ast::Position::new(line, column);
@@ -1008,20 +1049,20 @@ impl Parser {
     }
     
     fn get_binary_op(&self) -> Option<String> {
-        match &self.current_token {
-            Token::Plus => Some("+".to_string()),
-            Token::Minus => Some("-".to_string()),
-            Token::Multiply => Some("*".to_string()),
-            Token::Divide => Some("/".to_string()),
-            Token::Less => Some("<".to_string()),
-            Token::Greater => Some(">".to_string()),
-            Token::LessEqual => Some("<=".to_string()),
-            Token::GreaterEqual => Some(">=".to_string()),
-            Token::LessThan => Some("<".to_string()),
-            Token::GreaterThan => Some(">".to_string()),
-            Token::EqualEqual => Some("==".to_string()),
-            Token::Range => Some("..".to_string()),
-            _ => None,
+        match &self.current_token {
+            Token::Plus => Some("+".to_string()),
+            Token::Minus => Some("-".to_string()),
+            Token::Multiply => Some("*".to_string()),
+            Token::Divide => Some("/".to_string()),
+            Token::Less => Some("<".to_string()),
+            Token::Greater => Some(">".to_string()),
+            Token::LessEqual => Some("<=".to_string()),
+            Token::GreaterEqual => Some(">=".to_string()),
+            Token::LessThan => Some("<".to_string()),
+            Token::GreaterThan => Some(">".to_string()),
+            Token::EqualEqual => Some("==".to_string()),
+            Token::Range => Some("..".to_string()),
+            _ => None,
         }
     }
     
