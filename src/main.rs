@@ -14,7 +14,7 @@ use repl::Repl;
 fn main() {
     let args: Vec<String> = env::args().collect();
     //版本号常量
-    const VERSION: &str = "Beta0.1.0";
+    const VERSION: &str = "Beta0.4.0";
     
     if args.len() < 2 {
         // 启动REPL模式
