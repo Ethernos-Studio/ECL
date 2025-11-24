@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECL 文档阅读器</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="nav-container">
+                <h1 class="logo">ECL 文档阅读器</h1>
+                <ul class="nav-links">
+                    <li><a href="../index.html">首页</a></li>
+                    <li><a href="#" onclick="location.reload()">刷新</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main class="docs-reader">
+        <div class="container">
+            <div class="reader-layout">
+                <aside class="sidebar">
+                    <h3>文档目录</h3>
+                    <div id="doc-list" class="doc-list">
+                        <!-- 文档列表将通过JavaScript动态加载 -->
+                    </div>
+                </aside>
+                
+                <article class="content">
+                    <div id="loading" class="loading">正在加载文档...</div>
+                    <div id="error" class="error" style="display: none;"></div>
+                    <div id="markdown-content" class="markdown-content">
+                        <!-- Markdown内容将在这里显示 -->
+                    </div>
+                </article>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 ECL 编程语言. 开源项目.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

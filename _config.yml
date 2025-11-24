@@ -1,0 +1,40 @@
+# GitHub Pages 配置
+title: "ECL 编程语言"
+description: "ECL (EthernosCommandLang) 是一个基于 Rust 开发的半过程式编程语言"
+baseurl: ""
+url: "https://yourusername.github.io"
+repository: "yourusername/your-repo-name"
+
+# 构建设置
+markdown: kramdown
+highlighter: rouge
+theme: jekyll-theme-minimal
+
+# 插件
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# 包含的文件
+include:
+  - website
+  - docs
+
+# 排除的文件
+exclude:
+  - src
+  - tests
+  - vscode-ecl-extension
+  - Cargo.toml
+  - Cargo.lock
+  - target
+  - .git
+  - .gitignore
+
+# 默认布局
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试页面</title>
+</head>
+<body>
+    <h1>网站文件结构测试</h1>
+    <h2>文件列表：</h2>
+    <ul>
+        <li><a href="../index.html">主页 (index.html)</a></li>
+        <li><a href="docs_reader.html">文档阅读器 (docs_reader.html)</a></li>
+        <li><a href="style.css">样式文件 (style.css)</a></li>
+        <li><a href="script.js">脚本文件 (script.js)</a></li>
+    </ul>
+    
+    <h2>文档文件测试：</h2>
+    <ul>
+        <li><a href="#" onclick="testDocLoad('introduction.md')">测试加载 introduction.md</a></li>
+        <li><a href="#" onclick="testDocLoad('quickstart.md')">测试加载 quickstart.md</a></li>
+        <li><a href="#" onclick="testDocLoad('syntax.md')">测试加载 syntax.md</a></li>
+    </ul>
+    
+    <div id="test-result"></div>
+
+    <script>
+        async function testDocLoad(filename) {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '正在测试加载: ' + filename + '...';
+            
+            try {
+                const response = await fetch(`../docs/${filename}`);
+                if (response.ok) {
+                    const content = await response.text();
+                    resultDiv.innerHTML = `
+                        <h3>成功加载: ${filename}</h3>
+                        <p>文件大小: ${content.length} 字符</p>
+                        <p>前100个字符:</p>
+                        <pre>${content.substring(0, 100)}...</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">加载失败: ${response.status} ${response.statusText}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">错误: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
