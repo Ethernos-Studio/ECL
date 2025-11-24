@@ -431,6 +431,74 @@ print(clampedHigh);
 println("");
 ```
 
+### 3. 转义序列示例
+
+```ecl
+// 转义序列使用示例
+func demonstrateEscapeSequences() {
+    println("=== Escape Sequences Demo ===");
+    
+    // 换行符
+    println("Line 1\nLine 2\nLine 3");
+    
+    // 制表符
+    println("Name\tAge\tCity");
+    println("Alice\t25\tNew York");
+    println("Bob\t30\tLondon");
+    
+    // 引号
+    println("She said \"Hello World!\"");
+    println('It\'s a beautiful day');
+    
+    // 反斜杠
+    println("Windows path: C:\\Users\\Documents");
+    println("Unix path: /home/user/documents");
+    
+    // Unicode转义
+    println("Emoji: \u{1F600} \u{1F601} \u{1F602}");
+    println("Chinese: \u{4E2D}\u{6587}\u{6D4B}\u{8BD5}");
+    println("Math: \u{03C0} = 3.14159");
+    
+    // 混合使用
+    println("Mixed: Hello\u0020World!\nTab:\u0009Here");
+}
+
+demonstrateEscapeSequences();
+```
+
+### 4. 数组和列表输出示例
+
+```ecl
+// 数组和列表的正确输出方式
+func demonstrateArrayOutput() {
+    println("=== Array and List Output ===");
+    
+    // 数组输出（需要类型转换）
+    var <int>scores[3] = {85, 92, 78};
+    println("First score: " + <str>scores[0]);
+    println("All scores: " + <str>scores[0] + ", " + <str>scores[1] + ", " + <str>scores[2]);
+    
+    // 使用循环输出数组
+    println("Using loop:");
+    for i in 0..3 {
+        print("Score ");
+        print(i);
+        print(": ");
+        println(<str>scores[i]);
+    }
+    
+    // 列表输出（需要类型转换）
+    var mixed = {1, "hello", true, 3.14};
+    println("List elements:");
+    println("First: " + <str>mixed[0]);
+    println("String: " + mixed[3]);  // 字符串不需要转换
+    println("Number: " + <str>mixed[0]);
+    println("Boolean: " + <str>mixed[2]);
+}
+
+demonstrateArrayOutput();
+```
+
 ### 2. 字符串工具
 
 ```ecl

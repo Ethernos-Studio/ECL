@@ -16,6 +16,7 @@
 10. [数据结构](./data-structures.md) - 数组和列表操作
 11. [类型转换](./type-conversion.md) - 类型转换机制
 12. [输入输出](./io.md) - 输入输出操作
-13. [REPL 环境](./repl.md) - 交互式环境使用
-14. [调试与错误处理](./debugging.md) - 调试功能和错误处理
-15. [示例与最佳实践](./examples.md) - 示例代码和最佳实践
+13. [字符串转义](./string-escapes.md) - 字符串转义序列详解
+14. [REPL 环境](./repl.md) - 交互式环境使用
+15. [调试与错误处理](./debugging.md) - 调试功能和错误处理
+16. [示例与最佳实践](./examples.md) - 示例代码和最佳实践

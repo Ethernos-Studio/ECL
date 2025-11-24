@@ -89,6 +89,7 @@ impl Parser {
                         Token::Func =>      error_messages::unexpected_func(),
                         Token::Expr =>      error_messages::unexpected_expr(),
                         Token::Return =>    error_messages::unexpected_return(),
+                        Token::Import =>    error_messages::unexpected_import(),
                         Token::True =>      error_messages::unexpected_boolean("true"),
                         Token::False =>     error_messages::unexpected_boolean("false"),
                         Token::LeftParen => error_messages::unexpected_paren("left"),
@@ -610,6 +611,25 @@ impl Parser {
                 
                 Some(ASTNode::Println(Box::new(expr)))
             }
+            Token::Import => {
+                self.advance();
+                
+                // Parse import filename (should be a string)
+                if let Token::String(filename) = &self.current_token.clone() {
+                    let import_file = filename.clone();
+                    self.advance();
+                    
+                    if matches!(self.current_token, Token::Semicolon) {
+                        self.advance();
+                    }
+                    
+                    let (line, column) = self.lexer.get_position();
+                    let pos = crate::ast::Position::new(line, column);
+                    Some(ASTNode::Import(import_file, pos))
+                } else {
+                    None
+                }
+            }
             Token::LessThan => {
                 // Handle direct type declaration: <type>name = value
                 self.advance(); // consume '<'
@@ -687,11 +707,16 @@ impl Parser {
                             }
                             
                             Some(ASTNode::IndexAssign(Box::new(identifier_node), Box::new(index_expr), Box::new(value_expr), pos))
-                        } else {
-                            // Just index access - need to get the position for the ']'
-                            let (line, column) = self.lexer.get_position();
-                            let pos = crate::ast::Position::new(line, column);
-                            Some(ASTNode::IndexAccess(Box::new(identifier_node), Box::new(index_expr), pos))
+                        } else {
+
+                            // Just index access - need to get the position for the ']'
+
+                            let (line, column) = self.lexer.get_position();
+
+                            let pos = crate::ast::Position::new(line, column);
+
+                            Some(ASTNode::IndexAccess(Box::new(identifier_node), Box::new(index_expr), pos))
+
                         }
                     } else if matches!(self.current_token, Token::Equal) {
                     self.advance();
@@ -819,56 +844,106 @@ impl Parser {
         Some(left)
     }
     
-    fn parse_primary(&mut self) -> Option<ASTNode> {
-        match &self.current_token.clone() {
-            Token::LessThan => {
-                // Handle type conversion: <type>expression
-                self.advance(); // consume '<'
-                
-                // Parse type name
-                let type_token = self.current_token.clone();
-                self.advance(); // consume type name
-                
-                if !matches!(self.current_token, Token::GreaterThan) {
-                    return None;
-                }
-                self.advance(); // consume '>'
-                
-                let conversion_type = match type_token {
-                    Token::Int => Type::Int,
-                    Token::Str => Type::Str,
-                    Token::Bool => Type::Bool,
-                    Token::Float => Type::Float,
-                    Token::Double => Type::Double,
-                    _ => return None, // Not a type conversion, it's a comparison
-                };
-                
-                // Get position after the '>'
-                let (line, column) = self.lexer.get_position();
-                let pos = crate::ast::Position::new(line, column);
-                
-                // Parse the expression to be converted
-                let expr = self.parse_primary()?; // Use parse_primary to handle nested conversions
-                
-                Some(ASTNode::TypeConversion(conversion_type, Box::new(expr), pos))
-            }
-            Token::Number(n) => {
-                let value = *n;
-                self.advance();
-                Some(ASTNode::Number(value))
-            }
-            Token::String(s) => {
-                let value = s.clone();
-                self.advance();
-                Some(ASTNode::String(value))
-            }
-            Token::True => {
-                self.advance();
-                Some(ASTNode::Bool(true))
-            }
-            Token::False => {
-                self.advance();
-                Some(ASTNode::Bool(false))
+    fn parse_primary(&mut self) -> Option<ASTNode> {
+
+        match &self.current_token.clone() {
+
+            Token::LessThan => {
+
+                // Handle type conversion: <type>expression
+
+                self.advance(); // consume '<'
+
+                
+
+                // Parse type name
+
+                let type_token = self.current_token.clone();
+
+                self.advance(); // consume type name
+
+                
+
+                if !matches!(self.current_token, Token::GreaterThan) {
+
+                    return None;
+
+                }
+
+                self.advance(); // consume '>'
+
+                
+
+                let conversion_type = match type_token {
+
+                    Token::Int => Type::Int,
+
+                    Token::Str => Type::Str,
+
+                    Token::Bool => Type::Bool,
+
+                    Token::Float => Type::Float,
+
+                    Token::Double => Type::Double,
+
+                    _ => return None, // Not a type conversion, it's a comparison
+
+                };
+
+                
+
+                // Get position after the '>'
+
+                let (line, column) = self.lexer.get_position();
+
+                let pos = crate::ast::Position::new(line, column);
+
+                
+
+                // Parse the expression to be converted
+
+                let expr = self.parse_primary()?; // Use parse_primary to handle nested conversions
+
+                
+
+                Some(ASTNode::TypeConversion(conversion_type, Box::new(expr), pos))
+
+            }
+
+            Token::Number(n) => {
+
+                let value = *n;
+
+                self.advance();
+
+                Some(ASTNode::Number(value))
+
+            }
+
+            Token::String(s) => {
+
+                let value = s.clone();
+
+                self.advance();
+
+                Some(ASTNode::String(value))
+
+            }
+
+            Token::True => {
+
+                self.advance();
+
+                Some(ASTNode::Bool(true))
+
+            }
+
+            Token::False => {
+
+                self.advance();
+
+                Some(ASTNode::Bool(false))
+
             }
             Token::If => {
                 // Parse if expression: if (condition) then_expr else else_expr
@@ -945,12 +1020,18 @@ impl Parser {
                     if !matches!(self.current_token, Token::RightBracket) {
                         return None;
                     }
-                    self.advance(); // consume ']'
-                    
-                    // Get position for the index access
-                    let (line, column) = self.lexer.get_position();
-                    let pos = crate::ast::Position::new(line, column);
-                    
+                    self.advance(); // consume ']'
+
+                    
+
+                    // Get position for the index access
+
+                    let (line, column) = self.lexer.get_position();
+
+                    let pos = crate::ast::Position::new(line, column);
+
+                    
+
                     Some(ASTNode::IndexAccess(Box::new(identifier_node), Box::new(index_expr), pos))
                 } else {
                     let (line, column) = self.lexer.get_position();
@@ -1049,20 +1130,34 @@ impl Parser {
     }
     
     fn get_binary_op(&self) -> Option<String> {
-        match &self.current_token {
-            Token::Plus => Some("+".to_string()),
-            Token::Minus => Some("-".to_string()),
-            Token::Multiply => Some("*".to_string()),
-            Token::Divide => Some("/".to_string()),
-            Token::Less => Some("<".to_string()),
-            Token::Greater => Some(">".to_string()),
-            Token::LessEqual => Some("<=".to_string()),
-            Token::GreaterEqual => Some(">=".to_string()),
-            Token::LessThan => Some("<".to_string()),
-            Token::GreaterThan => Some(">".to_string()),
-            Token::EqualEqual => Some("==".to_string()),
-            Token::Range => Some("..".to_string()),
-            _ => None,
+        match &self.current_token {
+
+            Token::Plus => Some("+".to_string()),
+
+            Token::Minus => Some("-".to_string()),
+
+            Token::Multiply => Some("*".to_string()),
+
+            Token::Divide => Some("/".to_string()),
+
+            Token::Less => Some("<".to_string()),
+
+            Token::Greater => Some(">".to_string()),
+
+            Token::LessEqual => Some("<=".to_string()),
+
+            Token::GreaterEqual => Some(">=".to_string()),
+
+            Token::LessThan => Some("<".to_string()),
+
+            Token::GreaterThan => Some(">".to_string()),
+
+            Token::EqualEqual => Some("==".to_string()),
+
+            Token::Range => Some("..".to_string()),
+
+            _ => None,
+
         }
     }
     

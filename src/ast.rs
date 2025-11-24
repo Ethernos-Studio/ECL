@@ -69,8 +69,13 @@ pub enum ASTNode {
     FunctionCall(String, Vec<ASTNode>),
     // 返回语句：return value
     Return(Box<ASTNode>),
-    // if表达式：if (condition) then_expr else else_expr
-    IfExpr(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
-    // 类型转换：<type>value
+    // if表达式：if (condition) then_expr else else_expr
+
+    IfExpr(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
+
+    // 类型转换：<type>value
+
     TypeConversion(Type, Box<ASTNode>, Position),
+    // import语句：import "filename"
+    Import(String, Position),
 }

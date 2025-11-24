@@ -61,6 +61,18 @@ println("");
 // 或者使用类型转换
 print("Student: " + name + ", Score: " + <str>score);
 println("");
+
+// 使用转义序列进行格式化输出
+println("Name\tScore\tGrade");           // 使用制表符对齐
+println("Alice\t95\tA");
+println("Bob\t87\tB");
+
+// 多行输出
+println("First Line\nSecond Line\nThird Line");  // 使用换行符
+
+// 包含引号的输出
+println("She said \"Hello World!\"");
+println("Path: C:\\Users\\Documents");           // 反斜杠需要转义
 ```
 
 ## 输入函数
@@ -170,6 +182,20 @@ println("");
 print("Score    : ");
 print(95.5);
 println("");
+```
+
+### 数组和列表元素输出
+
+```ecl
+// 正确的数组元素输出（需要类型转换）
+var <int>scores[3] = {85, 92, 78};
+println("First score: " + <str>scores[0]);
+println("All scores: " + <str>scores[0] + ", " + <str>scores[1] + ", " + <str>scores[2]);
+
+// 列表元素输出（需要类型转换）
+var mixed = {1, "hello", true, 3.14};
+println("First element: " + <str>mixed[0]);
+println("String element: " + mixed[3]);  // 字符串不需要转换
 ```
 
 ## 文件输出（概念性）

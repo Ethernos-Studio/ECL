@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use crate::ast::{ASTNode, Type};
 use crate::error::{error_messages, create_undefined_identifier_error, CompilerError};
 
@@ -554,6 +556,10 @@ impl Interpreter {
                 // For now, we'll store the return value in a special variable
                 self.variables.insert("__return_value__".to_string(), (return_value, None));
             }
+            ASTNode::Import(filename, pos) => {
+                // Handle import statement
+                self.handle_import(filename, pos);
+            }
             _ => {}
         }
     }
@@ -875,7 +881,131 @@ impl Interpreter {
                     self.evaluate_print_expression(else_expr)
                 }
             }
+            ASTNode::IndexAccess(array_expr, index_expr, pos) => {
+                let array_val = self.evaluate_value(array_expr);
+                let index_val = self.evaluate_value(index_expr);
+                let index = index_val.to_f64() as usize;
+                
+                match array_val {
+                    Value::Array(arr) => {
+                        if index < arr.len() {
+                            arr[index].to_string()
+                        } else {
+                            // Index out of bounds - report error
+                            let error_msg = error_messages::array_index_out_of_bounds(index, arr.len());
+                            let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                                .unwrap_or(&String::new()).clone();
+                            
+                            let compiler_error = CompilerError::new(
+                                error_msg,
+                                pos.line,
+                                pos.column,
+                                self.file_path.clone(),
+                                source_line,
+                            )
+                            .with_help(error_messages::help_array_bounds())
+                            .with_example(error_messages::example_array_bounds());
+                            
+                            eprintln!("{}", compiler_error);
+                            std::process::exit(1);
+                        }
+                    }
+                    Value::List(lst) => {
+                        if index < lst.len() {
+                            lst[index].to_string()
+                        } else {
+                            // Index out of bounds - report error
+                            let error_msg = error_messages::list_index_out_of_bounds(index, lst.len());
+                            let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                                .unwrap_or(&String::new()).clone();
+                            
+                            let compiler_error = CompilerError::new(
+                                error_msg,
+                                pos.line,
+                                pos.column,
+                                self.file_path.clone(),
+                                source_line,
+                            )
+                            .with_help(error_messages::help_array_bounds())
+                            .with_example(error_messages::example_array_bounds());
+                            
+                            eprintln!("{}", compiler_error);
+                            std::process::exit(1);
+                        }
+                        
+                    }
+                    _ => {
+                        // Not an array or list - return "0"
+                        "0".to_string()
+                    }
+                }
+            }
             _ => "0".to_string(),
+        }
+    }
+    
+    fn handle_import(&mut self, filename: &str, pos: &crate::ast::Position) {
+        // 构建完整的文件路径
+        let import_path = if filename.ends_with(".ecl") {
+            filename.to_string()
+        } else {
+            format!("{}.ecl", filename)
+        };
+        
+        // 尝试读取导入的文件
+        match fs::read_to_string(&import_path) {
+            Ok(content) => {
+                // 解析并执行导入的文件内容
+                use crate::lexer::Lexer;
+                use crate::parser::Parser;
+                
+                let lexer = Lexer::new(&content);
+                let mut parser = Parser::new(lexer);
+                
+                // 保存当前文件路径和源行
+                let saved_file_path = self.file_path.clone();
+                let saved_source_lines = self.source_lines.clone();
+                
+                // 设置新的文件路径和源行
+                let import_source_lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+                self.file_path = import_path.clone();
+                self.source_lines = import_source_lines.clone();
+                
+                // 解析导入的文件
+                match parser.parse(&self.file_path, &self.source_lines) {
+                    Ok(ast_nodes) => {
+                        // 执行导入的文件中的所有语句
+                        for node in ast_nodes {
+                            self.evaluate(&node);
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("{}", error);
+                        std::process::exit(1);
+                    }
+                }
+                
+                // 恢复原来的文件路径和源行
+                self.file_path = saved_file_path;
+                self.source_lines = saved_source_lines;
+            }
+            Err(e) => {
+                // 创建导入错误消息
+                let error_msg = format!("Import error: cannot read file '{}': {}", import_path, e);
+                let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                    .unwrap_or(&String::new()).clone();
+                
+                let compiler_error = CompilerError::new(
+                    error_msg,
+                    pos.line,
+                    pos.column,
+                    self.file_path.clone(),
+                    source_line,
+                );
+                
+                eprintln!("{}", compiler_error);
+                std::process::exit(1);
+            }
         }
     }
     

@@ -60,6 +60,10 @@ pub mod error_messages {
         "Syntax error: unexpected return keyword, please check function return syntax".to_string()
     }
     
+    pub fn unexpected_import() -> String {
+        "Syntax error: unexpected import keyword, please check import statement syntax".to_string()
+    }
+    
     pub fn unexpected_boolean(value: &str) -> String {
         format!("Syntax error: unexpected {} value, please check boolean expression syntax", value)
     }
@@ -126,29 +130,52 @@ pub mod error_messages {
         "help: make sure the index is within the valid range [0, length)".to_string()
     }
     
-    pub fn example_array_bounds() -> String {
-        "example: if arr has 5 elements, valid indices are 0, 1, 2, 3, 4".to_string()
-    }
-
-    pub fn help_array_type() -> String {
-        "help: ensure all values assigned to an array are of the same type as declared".to_string()
-    }
-
-    pub fn example_array_type() -> String {
-        "example: if arr is declared as <int>, assign only integer values like arr[0] = 10".to_string()
-    }
-
-    pub fn help_array_assignment() -> String {
-        "help: ensure the value being assigned is of the correct type".to_string()
-    }
-
-    pub fn example_array_assignment() -> String {
-        "example: if arr is an integer array, assign only integer values like arr[0] = 10".to_string()
-    }
-    
-    // 帮助信息
-    pub fn help_var_initializer() -> String {
-        "help: syntax is `var name = value`".to_string()
+    pub fn example_array_bounds() -> String {
+
+        "example: if arr has 5 elements, valid indices are 0, 1, 2, 3, 4".to_string()
+
+    }
+
+
+
+    pub fn help_array_type() -> String {
+
+        "help: ensure all values assigned to an array are of the same type as declared".to_string()
+
+    }
+
+
+
+    pub fn example_array_type() -> String {
+
+        "example: if arr is declared as <int>, assign only integer values like arr[0] = 10".to_string()
+
+    }
+
+
+
+    pub fn help_array_assignment() -> String {
+
+        "help: ensure the value being assigned is of the correct type".to_string()
+
+    }
+
+
+
+    pub fn example_array_assignment() -> String {
+
+        "example: if arr is an integer array, assign only integer values like arr[0] = 10".to_string()
+
+    }
+
+    
+
+    // 帮助信息
+
+    pub fn help_var_initializer() -> String {
+
+        "help: syntax is `var name = value`".to_string()
+
     }
     
     pub fn example_var_initializer() -> String {

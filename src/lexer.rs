@@ -188,14 +188,137 @@ impl Lexer {
         let mut result = String::new();
         
         while self.position < self.input.len() && self.input[self.position] != '"' {
-            if self.input[self.position] == '\n' {
+            if self.input[self.position] == '\\' {
+                // Handle escape sequences
+                if self.position + 1 < self.input.len() {
+                    self.position += 1; // Move past the backslash
+                    self.column += 1;
+                    
+                    match self.input[self.position] {
+                        'n' => {
+                            result.push('\n');
+                            self.position += 1;
+                            self.column += 1;
+                        }
+                        't' => {
+                            result.push('\t');
+                            self.position += 1;
+                            self.column += 1;
+                        }
+                        '"' => {
+                            result.push('"');
+                            self.position += 1;
+                            self.column += 1;
+                        }
+                        '\\' => {
+                            result.push('\\');
+                            self.position += 1;
+                            self.column += 1;
+                        }
+                        '\'' => {
+                            result.push('\'');
+                            self.position += 1;
+                            self.column += 1;
+                        }
+                        'u' => {
+                            // Handle Unicode escape sequences: \u{XXXX} or \uXXXX
+                            self.position += 1;
+                            self.column += 1;
+                            
+                            if self.position < self.input.len() && self.input[self.position] == '{' {
+                                // \u{XXXX} format
+                                self.position += 1;
+                                self.column += 1;
+                                
+                                let mut hex_digits = String::new();
+                                while self.position < self.input.len() && self.input[self.position] != '}' {
+                                    hex_digits.push(self.input[self.position]);
+                                    self.position += 1;
+                                    self.column += 1;
+                                }
+                                
+                                if self.position < self.input.len() && self.input[self.position] == '}' {
+                                    self.position += 1;
+                                    self.column += 1;
+                                    
+                                    match u32::from_str_radix(&hex_digits, 16) {
+                                        Ok(code_point) => {
+                                            match char::from_u32(code_point) {
+                                                Some(ch) => result.push(ch),
+                                                None => {
+                                                    // Invalid Unicode code point
+                                                    result.push_str(&format!("\\u{{{}}}", hex_digits));
+                                                }
+                                            }
+                                        }
+                                        Err(_) => {
+                                            // Invalid hex digits
+                                            result.push_str(&format!("\\u{{{}}}", hex_digits));
+                                        }
+                                    }
+                                } else {
+                                    // Missing closing brace
+                                    result.push_str("\\u{");
+                                    result.push_str(&hex_digits);
+                                }
+                            } else if self.position + 3 < self.input.len() {
+                                // \uXXXX format (4 hex digits)
+                                let hex_digits: String = self.input[self.position..self.position + 4].iter().collect();
+                                
+                                match u32::from_str_radix(&hex_digits, 16) {
+                                    Ok(code_point) => {
+                                        match char::from_u32(code_point) {
+                                            Some(ch) => {
+                                                result.push(ch);
+                                                self.position += 4;
+                                                self.column += 4;
+                                            }
+                                            None => {
+                                                // Invalid Unicode code point
+                                                result.push_str("\\u");
+                                                result.push_str(&hex_digits);
+                                                self.position += 4;
+                                                self.column += 4;
+                                            }
+                                        }
+                                    }
+                                    Err(_) => {
+                                        // Invalid hex digits
+                                        result.push_str("\\u");
+                                        result.push_str(&hex_digits);
+                                        self.position += 4;
+                                        self.column += 4;
+                                    }
+                                }
+                            } else {
+                                // Not enough characters for \uXXXX
+                                result.push_str("\\u");
+                            }
+                        }
+                        _ => {
+                            // Unknown escape sequence, treat as literal
+                            result.push('\\');
+                            result.push(self.input[self.position]);
+                            self.position += 1;
+                            self.column += 1;
+                        }
+                    }
+                } else {
+                    // Backslash at end of input, treat as literal
+                    result.push('\\');
+                    self.position += 1;
+                    self.column += 1;
+                }
+            } else if self.input[self.position] == '\n' {
                 self.line += 1;
                 self.column = 1;
+                result.push(self.input[self.position]);
+                self.position += 1;
             } else {
                 self.column += 1;
+                result.push(self.input[self.position]);
+                self.position += 1;
             }
-            result.push(self.input[self.position]);
-            self.position += 1;
         }
         
         if self.position < self.input.len() && self.input[self.position] == '"' {
@@ -243,6 +366,7 @@ impl Lexer {
             "bool" => Token::Bool,
             "float" => Token::Float,
             "double" => Token::Double,
+            "import" => Token::Import,
             _ => Token::Identifier(result),
         }
     }

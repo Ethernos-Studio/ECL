@@ -53,12 +53,23 @@ var scientific = 1.5e-3;
 
 ### 字符串字面量
 
-字符串使用双引号包围：
+字符串使用双引号包围，支持反斜杠转义序列：
 
 ```ecl
+// 基本字符串
 var greeting = "Hello, World!";
-var multiline = "This is a
-multiline string";  // 注意：换行会被保留
+
+// 转义序列
+var newline = "Line 1\nLine 2";        // 换行符
+var tab = "Name\tAge\tCity";           // 制表符
+var quote = "She said \"Hello\"";      // 双引号
+var backslash = "Path: C:\\Users";     // 反斜杠
+var singleQuote = "It\'s working";     // 单引号
+
+// Unicode转义
+var emoji = "Smile: \u{1F600}";        // Unicode表情
+var chinese = "中文: \u{4E2D}\u{6587}"; // Unicode中文字符
+var ascii = "ABC: \u0041\u0042\u0043"; // Unicode ASCII字符
 ```
 
 ### 布尔字面量

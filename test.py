@@ -29,6 +29,7 @@ def test_ecl_files():
     print("编译完成。开始测试...\n")
 
     tlist = []
+    errorlist = []
     # 遍历tests目录下的所有文件
     for filename in os.listdir(tests_dir):
         if filename.endswith(".ecl"):
@@ -46,6 +47,7 @@ def test_ecl_files():
                     if is_error_test and not filename in pasd:
                         # 预期错误的测试却正常完成，这是失败
                         tlist.append(f"✗ {filename} - 失败 (应报错但未报错)")
+                        errorlist.append(f"{filename} 应报错但未报错")
                         output = result.stdout if result.stdout is not None else "[无输出]"
                         print(f"  结果: {output.strip() if output.strip() else '[无输出]'} (预期应报错)")
                     else:
@@ -66,6 +68,7 @@ def test_ecl_files():
                     else:
                         # 非预期错误的测试报错了，这是失败
                         tlist.append(f"✗ {filename} - 失败 - {error_msg}")
+                        errorlist.append(f"{filename} 报错: {error_msg}")
                         print(f"  错误: {error_msg}")
             except subprocess.TimeoutExpired:
                 tlist.append(f"✗ {filename} - 超时")
@@ -77,7 +80,11 @@ def test_ecl_files():
     
     print("\n" + "="*50)
     print("测试完成。结果如下：\n")
-    return '\n'.join(tlist)
+    return '\n'.join(tlist), '\n'.join(errorlist)
 
 if __name__ == "__main__":
-    print(test_ecl_files())
+    results, errors = test_ecl_files()
+    print(results)
+    if errors:
+        print("\n错误详情：")
+        print(errors)

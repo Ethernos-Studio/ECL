@@ -12,6 +12,7 @@ pub enum Token {
     Func,
     Expr,
     Return,
+    Import,
     True,
     False,
     LeftParen,

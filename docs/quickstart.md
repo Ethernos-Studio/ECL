@@ -145,6 +145,18 @@ print("Number as string: ");
 print(str);
 ```
 
+## 字符串转义
+
+```ecl
+// 使用转义序列
+println("Hello\nWorld");           // 换行
+println("Name\tAge\tCity");         // 制表符对齐
+println("Quote: \"Hello\"");        // 双引号
+println("Path: C:\\Users");         // 反斜杠
+println("Emoji: \u{1F600}");        // Unicode表情
+println("Chinese: \u{4E2D}\u{6587}"); // Unicode中文
+```
+
 ## 多行输入
 
 对于复杂的代码块，可以使用多行输入模式：

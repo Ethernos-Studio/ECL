@@ -67,6 +67,19 @@ var thirdScore = scores[2];   // 78
 print("First score: ");
 print(scores[0]);
 println("");
+
+// 正确的数组元素输出（需要类型转换）
+println("First score: " + <str>scores[0]);
+println("All scores: " + <str>scores[0] + ", " + <str>scores[1] + ", " + <str>scores[2]);
+
+// 使用循环遍历数组
+for i in 0..3 {
+    print("Score ");
+    print(i);
+    print(": ");
+    print(scores[i]);
+    println("");
+}
 ```
 
 ### 数组修改
