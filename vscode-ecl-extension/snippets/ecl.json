@@ -1,0 +1,122 @@
+{
+  "Function Declaration": {
+    "prefix": "func",
+    "body": [
+      "func ${1:functionName}(${2:parameters}) {",
+      "\t${3:// function body}",
+      "\treturn ${4:value};",
+      "}"
+    ],
+    "description": "Create a new function"
+  },
+  "Expression Function": {
+    "prefix": "expr",
+    "body": [
+      "expr ${1:functionName}(${2:parameters}) {",
+      "\t${3:// expression body}",
+      "}"
+    ],
+    "description": "Create a new expression function"
+  },
+  "Variable Declaration": {
+    "prefix": "var",
+    "body": [
+      "var ${1:<type>}${2:variableName} = ${3:value};"
+    ],
+    "description": "Declare a new variable"
+  },
+  "Array Declaration": {
+    "prefix": "array",
+    "body": [
+      "var <${1:type}>${2:arrayName}[${3:size}] = {${4:initial_values}};"
+    ],
+    "description": "Declare a new array"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for ${1:i} in ${2:range} {",
+      "\t${3:// loop body}",
+      "}"
+    ],
+    "description": "Create a for loop"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while (${1:condition}) {",
+      "\t${2:// loop body}",
+      "}"
+    ],
+    "description": "Create a while loop"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2:// if body}",
+      "}"
+    ],
+    "description": "Create an if statement"
+  },
+  "If-Else Statement": {
+    "prefix": "ifelse",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2:// if body}",
+      "} else {",
+      "\t${3:// else body}",
+      "}"
+    ],
+    "description": "Create an if-else statement"
+  },
+  "Print Statement": {
+    "prefix": "print",
+    "body": [
+      "print(${1:message});"
+    ],
+    "description": "Print to console"
+  },
+  "Print Line": {
+    "prefix": "println",
+    "body": [
+      "println(${1:message});"
+    ],
+    "description": "Print line to console"
+  },
+  "Input Statement": {
+    "prefix": "input",
+    "body": [
+      "input ${1:\"prompt\"}, ${2:variable};"
+    ],
+    "description": "Get user input"
+  },
+  "Import Statement": {
+    "prefix": "import",
+    "body": [
+      "import \"${1:filename}.ecl\";"
+    ],
+    "description": "Import another ECL file"
+  },
+  "Return Statement": {
+    "prefix": "return",
+    "body": [
+      "return ${1:value};"
+    ],
+    "description": "Return from function"
+  },
+  "Type Conversion": {
+    "prefix": "cast",
+    "body": [
+      "<${1:type}>${2:value}"
+    ],
+    "description": "Convert type"
+  },
+  "If Expression": {
+    "prefix": "ifexpr",
+    "body": [
+      "if (${1:condition}) ${2:then_expr} else ${3:else_expr}"
+    ],
+    "description": "Create an if expression"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "name": "ecl-language-support",
+  "displayName": "ECL Language Support",
+  "description": "语法高亮、智能提示、符号追踪和跨文件跳转 for ECL programming language",
+  "version": "0.3.0",
+  "publisher": "ecl-developer",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": ["Programming Languages"],
+  "keywords": ["ecl", "language", "syntax-highlighting", "autocomplete"],
+  "activationEvents": [
+    "onLanguage:ecl"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [{
+      "id": "ecl",
+      "aliases": ["ECL", "ecl"],
+      "extensions": [".ecl"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "ecl",
+      "scopeName": "source.ecl",
+      "path": "./syntaxes/ecl.tmLanguage.json"
+    }],
+    "snippets": [{
+      "language": "ecl",
+      "path": "./snippets/ecl.json"
+    }],
+    "configurationDefaults": {
+      "editor.tabSize": 4,
+      "editor.insertSpaces": true,
+      "editor.wordSeparators": "`~!@#%^&*()-=+[{]}\\|;:'\",.<>/?"
+    },
+    "themes": [{
+      "label": "ECL Theme",
+      "uiTheme": "vs-dark",
+      "path": "./themes/ecl-color-theme.json"
+    }]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  }
+}

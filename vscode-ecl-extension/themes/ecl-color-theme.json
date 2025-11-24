@@ -1,0 +1,100 @@
+{
+  "name": "ECL Theme",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#1e1e1e",
+    "editor.foreground": "#d4d4d4",
+    "editor.lineHighlightBackground": "#2d2d2d",
+    "editor.selectionBackground": "#264f78",
+    "editor.selectionHighlightBackground": "#add6ff26"
+  },
+  "tokenColors": [
+    {
+      "name": "Function Declaration",
+      "scope": "entity.name.function.declaration.ecl",
+      "settings": {
+        "foreground": "#4fc1ff",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Function Call",
+      "scope": "entity.name.function.call.ecl",
+      "settings": {
+        "foreground": "#dcdcaa"
+      }
+    },
+    {
+      "name": "Variable Declaration",
+      "scope": "variable.other.declaration.ecl",
+      "settings": {
+        "foreground": "#9cdcfe",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Variable Reference",
+      "scope": "variable.other.reference.ecl",
+      "settings": {
+        "foreground": "#9cdcfe"
+      }
+    },
+    {
+      "name": "Keywords",
+      "scope": "keyword.control.ecl, keyword.declaration.ecl, keyword.other.ecl",
+      "settings": {
+        "foreground": "#569cd6"
+      }
+    },
+    {
+      "name": "Types",
+      "scope": "storage.type.ecl, storage.type.declaration.ecl",
+      "settings": {
+        "foreground": "#4ec9b0"
+      }
+    },
+    {
+      "name": "Strings",
+      "scope": "string.quoted.double.ecl",
+      "settings": {
+        "foreground": "#ce9178"
+      }
+    },
+    {
+      "name": "Numbers",
+      "scope": "constant.numeric.ecl",
+      "settings": {
+        "foreground": "#b5cea8"
+      }
+    },
+    {
+      "name": "Comments",
+      "scope": "comment.line.double-slash.ecl, comment.block.ecl",
+      "settings": {
+        "foreground": "#6a9955",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "Operators",
+      "scope": "keyword.operator.comparison.ecl, keyword.operator.arithmetic.ecl, keyword.operator.assignment.ecl, keyword.operator.range.ecl",
+      "settings": {
+        "foreground": "#d4d4d4"
+      }
+    },
+    {
+      "name": "Constants",
+      "scope": "constant.language.ecl",
+      "settings": {
+        "foreground": "#569cd6"
+      }
+    },
+    {
+      "name": "Escape Sequences",
+      "scope": "constant.character.escape.ecl, constant.character.escape.unicode.ecl",
+      "settings": {
+        "foreground": "#d7ba7d"
+      }
+    }
+  ]
+}
