@@ -36,6 +36,22 @@ pub mod error_messages {
         format!("Syntax error: unexpected {} keyword, please check loop syntax", keyword)
     }
     
+    pub fn missing_loop_parens(keyword: &str) -> String {
+        format!("Syntax error: {} loop requires parentheses around the condition, expected {}(condition)", keyword, keyword)
+    }
+    
+    pub fn missing_if_parens() -> String {
+        "Syntax error: if statement requires parentheses around the condition, expected if(condition)".to_string()
+    }
+    
+    pub fn missing_input_parens() -> String {
+        "Syntax error: input statement requires parentheses, expected input(prompt, variable)".to_string()
+    }
+    
+    pub fn missing_print_parens() -> String {
+        "Syntax error: print statement requires parentheses, expected print(expression)".to_string()
+    }
+    
     pub fn unexpected_conditional_keyword(keyword: &str) -> String {
         format!("Syntax error: unexpected {} keyword, please check conditional statement syntax", keyword)
     }

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::env;
 use crate::ast::{ASTNode, Type};
 use crate::error::{error_messages, create_undefined_identifier_error, CompilerError};
 
@@ -952,46 +953,120 @@ impl Interpreter {
             format!("{}.ecl", filename)
         };
         
-        // 尝试读取导入的文件
-        match fs::read_to_string(&import_path) {
-            Ok(content) => {
-                // 解析并执行导入的文件内容
-                use crate::lexer::Lexer;
-                use crate::parser::Parser;
-                
-                let lexer = Lexer::new(&content);
-                let mut parser = Parser::new(lexer);
-                
-                // 保存当前文件路径和源行
-                let saved_file_path = self.file_path.clone();
-                let saved_source_lines = self.source_lines.clone();
-                
-                // 设置新的文件路径和源行
-                let import_source_lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-                self.file_path = import_path.clone();
-                self.source_lines = import_source_lines.clone();
-                
-                // 解析导入的文件
-                match parser.parse(&self.file_path, &self.source_lines) {
-                    Ok(ast_nodes) => {
-                        // 执行导入的文件中的所有语句
-                        for node in ast_nodes {
-                            self.evaluate(&node);
-                        }
+        // 按照优先级顺序查找文件：
+        // 1. 执行目录（当前工作目录）
+        // 2. 文件目录（当前执行的ECL文件所在目录）
+        // 3. 系统库目录（lib/）
+        
+        let mut found_path = None;
+        let mut tried_paths = Vec::new();
+        
+        // 1. 尝试执行目录（当前工作目录）
+        let exec_path = PathBuf::from(&import_path);
+        tried_paths.push(exec_path.display().to_string());
+        if exec_path.exists() {
+            found_path = Some(exec_path);
+        }
+        
+        // 2. 尝试文件目录（当前执行的ECL文件所在目录）
+        if found_path.is_none() {
+            if let Some(current_dir) = Path::new(&self.file_path).parent() {
+                let file_dir_path = current_dir.join(&import_path);
+                tried_paths.push(file_dir_path.display().to_string());
+                if file_dir_path.exists() {
+                    found_path = Some(file_dir_path);
+                }
+            }
+        }
+        
+        // 3. 尝试系统库目录（lib/）
+        if found_path.is_none() {
+            // 获取可执行文件所在目录
+            if let Ok(exe_path) = env::current_exe() {
+                if let Some(exe_dir) = exe_path.parent() {
+                    let lib_path = exe_dir.join("lib").join(&import_path);
+                    tried_paths.push(lib_path.display().to_string());
+                    if lib_path.exists() {
+                        found_path = Some(lib_path);
                     }
-                    Err(error) => {
-                        eprintln!("{}", error);
+                }
+            }
+            
+            // 如果上面没找到，尝试项目根目录的lib/
+            if found_path.is_none() {
+                let project_lib_path = PathBuf::from("lib").join(&import_path);
+                tried_paths.push(project_lib_path.display().to_string());
+                if project_lib_path.exists() {
+                    found_path = Some(project_lib_path);
+                }
+            }
+        }
+        
+        match found_path {
+            Some(path) => {
+                // 尝试读取导入的文件
+                match fs::read_to_string(&path) {
+                    Ok(content) => {
+                        // 解析并执行导入的文件内容
+                        use crate::lexer::Lexer;
+                        use crate::parser::Parser;
+                        
+                        let lexer = Lexer::new(&content);
+                        let mut parser = Parser::new(lexer);
+                        
+                        // 保存当前文件路径和源行
+                        let saved_file_path = self.file_path.clone();
+                        let saved_source_lines = self.source_lines.clone();
+                        
+                        // 设置新的文件路径和源行
+                        let import_source_lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+                        self.file_path = path.display().to_string();
+                        self.source_lines = import_source_lines.clone();
+                        
+                        // 解析导入的文件
+                        match parser.parse(&self.file_path, &self.source_lines) {
+                            Ok(ast_nodes) => {
+                                // 执行导入的文件中的所有语句
+                                for node in ast_nodes {
+                                    self.evaluate(&node);
+                                }
+                            }
+                            Err(error) => {
+                                eprintln!("{}", error);
+                                std::process::exit(1);
+                            }
+                        }
+                        
+                        // 恢复原来的文件路径和源行
+                        self.file_path = saved_file_path;
+                        self.source_lines = saved_source_lines;
+                    }
+                    Err(e) => {
+                        // 创建导入错误消息
+                        let error_msg = format!("Import error: cannot read file '{}': {}", path.display(), e);
+                        let source_line = self.source_lines.get(pos.line.saturating_sub(1))
+                            .unwrap_or(&String::new()).clone();
+                        
+                        let compiler_error = CompilerError::new(
+                            error_msg,
+                            pos.line,
+                            pos.column,
+                            self.file_path.clone(),
+                            source_line,
+                        );
+                        
+                        eprintln!("{}", compiler_error);
                         std::process::exit(1);
                     }
                 }
-                
-                // 恢复原来的文件路径和源行
-                self.file_path = saved_file_path;
-                self.source_lines = saved_source_lines;
             }
-            Err(e) => {
-                // 创建导入错误消息
-                let error_msg = format!("Import error: cannot read file '{}': {}", import_path, e);
+            None => {
+                // 创建导入错误消息，列出所有尝试过的路径
+                let error_msg = format!(
+                    "Import error: cannot find file '{}' in any of the following locations:\n  - {}",
+                    import_path,
+                    tried_paths.join("\n  - ")
+                );
                 let source_line = self.source_lines.get(pos.line.saturating_sub(1))
                     .unwrap_or(&String::new()).clone();
                 

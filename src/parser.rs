@@ -66,71 +66,72 @@ impl Parser {
                 }
             }
             
-            let stmt = self.parse_statement()
-                .ok_or_else(|| {
+            let stmt = match self.parse_statement() {
+                Some(stmt) => stmt,
+                None => {
                     let source_line = source_lines.get(line - 1).unwrap_or(&String::new()).clone();
-                    let error_msg = match &self.current_token {
-                        Token::Semicolon => error_messages::unexpected_semicolon(),
-                        Token::Eof =>       error_messages::unexpected_eof(),
-                        Token::Plus =>      error_messages::unexpected_operator("plus"),
-                        Token::Minus =>     error_messages::unexpected_operator("minus"),
-                        Token::Multiply =>  error_messages::unexpected_operator("multiplication"),
-                        Token::Divide =>    error_messages::unexpected_operator("division"),
-                        Token::Equal =>     error_messages::unexpected_operator("equals"),
-                        Token::Print =>     error_messages::unexpected_keyword("print"),
-                        Token::Println =>   error_messages::unexpected_keyword("println"),
-                        Token::Var =>       error_messages::unexpected_var(),
-                        Token::For =>       error_messages::unexpected_loop_keyword("for"),
-                        Token::In =>        error_messages::unexpected_loop_keyword("in"),
-                        Token::If =>        error_messages::unexpected_conditional_keyword("if"),
-                        Token::Else =>      error_messages::unexpected_else(),
-                        Token::While =>     error_messages::unexpected_loop_keyword("while"),
-                        Token::Input =>     error_messages::unexpected_input(),
-                        Token::Func =>      error_messages::unexpected_func(),
-                        Token::Expr =>      error_messages::unexpected_expr(),
-                        Token::Return =>    error_messages::unexpected_return(),
-                        Token::Import =>    error_messages::unexpected_import(),
-                        Token::True =>      error_messages::unexpected_boolean("true"),
-                        Token::False =>     error_messages::unexpected_boolean("false"),
-                        Token::LeftParen => error_messages::unexpected_paren("left"),
-                        Token::RightParen =>error_messages::unexpected_paren("right"),
-                        Token::LeftBrace => error_messages::unexpected_brace("left"),
-                        Token::RightBrace =>error_messages::unexpected_brace("right"),
-                        Token::Comma =>     error_messages::unexpected_comma(),
-                        Token::Colon =>     error_messages::unexpected_colon(),
-                        Token::Less =>      error_messages::unexpected_comparison_op("less than"),
-                        Token::Greater =>   error_messages::unexpected_comparison_op("greater than"),
-                        Token::LessEqual => error_messages::unexpected_comparison_op("less than or equal"),
-                        Token::GreaterEqual => error_messages::unexpected_comparison_op("greater than or equal"),
-                        Token::Range =>     error_messages::unexpected_range(),
-                        Token::LessThan =>  error_messages::unexpected_comparison_op("less than"),
-                        Token::GreaterThan => error_messages::unexpected_comparison_op("greater than"),
-                        Token::Int =>       error_messages::unexpected_type("int"),
-                        Token::Str =>       error_messages::unexpected_type("str"),
-                        Token::Bool =>      error_messages::unexpected_type("bool"),
-                        Token::Float =>     error_messages::unexpected_type("float"),
-                        Token::Double =>    error_messages::unexpected_type("double"),
-                        token => error_messages::unexpected_token(&format!("{:?}", token)),
-                    };
                     
-                    // Append error context if available
-                    let full_error_msg = if let Some(context) = &self.error_context {
-                        format!("{}\nHere are some possible causes and solutions for the syntax error:\n{}", error_msg, context)
+                    // Check if we have custom error context first
+                    let error_msg = if let Some(context) = &self.error_context {
+                        let msg = context.clone();
+                        self.error_context = None; // Clear the error context
+                        msg
                     } else {
-                        error_msg
+                        // Use the default token-based error messages
+                        match &self.current_token {
+                            Token::Semicolon => error_messages::unexpected_semicolon(),
+                            Token::Eof =>       error_messages::unexpected_eof(),
+                            Token::Plus =>      error_messages::unexpected_operator("plus"),
+                            Token::Minus =>     error_messages::unexpected_operator("minus"),
+                            Token::Multiply =>  error_messages::unexpected_operator("multiplication"),
+                            Token::Divide =>    error_messages::unexpected_operator("division"),
+                            Token::Equal =>     error_messages::unexpected_operator("equals"),
+                            Token::Print =>     error_messages::unexpected_keyword("print"),
+                            Token::Println =>   error_messages::unexpected_keyword("println"),
+                            Token::Var =>       error_messages::unexpected_var(),
+                            Token::For =>       error_messages::unexpected_loop_keyword("for"),
+                            Token::In =>        error_messages::unexpected_loop_keyword("in"),
+                            Token::If =>        error_messages::unexpected_conditional_keyword("if"),
+                            Token::Else =>      error_messages::unexpected_else(),
+                            Token::While =>     error_messages::unexpected_loop_keyword("while"),
+                            Token::Input =>     error_messages::unexpected_input(),
+                            Token::Func =>      error_messages::unexpected_func(),
+                            Token::Expr =>      error_messages::unexpected_expr(),
+                            Token::Return =>    error_messages::unexpected_return(),
+                            Token::Import =>    error_messages::unexpected_import(),
+                            Token::True =>      error_messages::unexpected_boolean("true"),
+                            Token::False =>     error_messages::unexpected_boolean("false"),
+                            Token::LeftParen => error_messages::unexpected_paren("left"),
+                            Token::RightParen =>error_messages::unexpected_paren("right"),
+                            Token::LeftBrace => error_messages::unexpected_brace("left"),
+                            Token::RightBrace =>error_messages::unexpected_brace("right"),
+                            Token::Comma =>     error_messages::unexpected_comma(),
+                            Token::Colon =>     error_messages::unexpected_colon(),
+                            Token::Less =>      error_messages::unexpected_comparison_op("less than"),
+                            Token::Greater =>   error_messages::unexpected_comparison_op("greater than"),
+                            Token::LessEqual => error_messages::unexpected_comparison_op("less than or equal"),
+                            Token::GreaterEqual => error_messages::unexpected_comparison_op("greater than or equal"),
+                            Token::Range =>     error_messages::unexpected_range(),
+                            Token::LessThan =>  error_messages::unexpected_comparison_op("less than"),
+                            Token::GreaterThan => error_messages::unexpected_comparison_op("greater than"),
+                            Token::Int =>       error_messages::unexpected_type("int"),
+                            Token::Str =>       error_messages::unexpected_type("str"),
+                            Token::Bool =>      error_messages::unexpected_type("bool"),
+                            Token::Float =>     error_messages::unexpected_type("float"),
+                            Token::Double =>    error_messages::unexpected_type("double"),
+                            token => error_messages::unexpected_token(&format!("{:?}", token)),
+                        }
                     };
                     
-                    // Clear the error context
-                    self.error_context = None;
-                    
-                    CompilerError::new(
-                        full_error_msg,
+                    return Err(CompilerError::new(
+                        error_msg,
                         line,
                         column,
                         file_path.to_string(),
                         source_line,
-                    )
-                })?;
+                    ));
+                }
+            };
             statements.push(stmt);
             
             // Consume optional semicolon after statement
@@ -191,10 +192,23 @@ impl Parser {
                     
                     let mut body = Vec::new();
                     while !matches!(self.current_token, Token::RightBrace) {
-                        if let Some(stmt) = self.parse_statement() {
-                            body.push(stmt);
-                        } else {
-                            break;
+                        // Check if we have error context from previous parsing failure
+                        if self.error_context.is_some() {
+                            return None; // Propagate the error by returning None
+                        }
+                        
+                        match self.parse_statement() {
+                            Some(stmt) => {
+                                body.push(stmt);
+                            }
+                            None => {
+                                // 如果解析失败，检查是否是函数体结束或其他有效语句
+                                if matches!(self.current_token, Token::RightBrace) {
+                                    break;
+                                }
+                                // 如果是其他情况，继续尝试解析下一条语句
+                                self.advance(); // 跳过当前无法解析的token
+                            }
                         }
                     }
                     
@@ -258,10 +272,23 @@ impl Parser {
                     
                     let mut body = Vec::new();
                     while !matches!(self.current_token, Token::RightBrace) {
-                        if let Some(stmt) = self.parse_statement() {
-                            body.push(stmt);
-                        } else {
-                            break;
+                        // Check if we have error context from previous parsing failure
+                        if self.error_context.is_some() {
+                            return None; // Propagate the error by returning None
+                        }
+                        
+                        match self.parse_statement() {
+                            Some(stmt) => {
+                                body.push(stmt);
+                            }
+                            None => {
+                                // 如果解析失败，检查是否是函数体结束或其他有效语句
+                                if matches!(self.current_token, Token::RightBrace) {
+                                    break;
+                                }
+                                // 如果是其他情况，继续尝试解析下一条语句
+                                self.advance(); // 跳过当前无法解析的token
+                            }
                         }
                     }
                     
@@ -411,6 +438,8 @@ impl Parser {
                     
                     // 检查 'in' 关键字
                     if !matches!(self.current_token, Token::In) {
+                        // Set error context for missing 'in' keyword
+                        self.error_context = Some(format!("for loop requires 'in' keyword\n  = help: use syntax: for variable in range {{ ... }}\n  = example: for i in 1..5 {{ print(i); }}"));
                         return None;
                     }
                     self.advance();
@@ -422,10 +451,13 @@ impl Parser {
                         self.advance();
                         let mut statements = Vec::new();
                         while !matches!(self.current_token, Token::RightBrace) {
-                            if let Some(stmt) = self.parse_statement() {
-                                statements.push(stmt);
-                            } else {
-                                break;
+                            match self.parse_statement() {
+                                Some(stmt) => {
+                                    statements.push(stmt);
+                                }
+                                None => {
+                                    break;
+                                }
                             }
                         }
                         if matches!(self.current_token, Token::RightBrace) {
@@ -433,30 +465,48 @@ impl Parser {
                         }
                         statements
                     } else {
-                        if let Some(stmt) = self.parse_statement() {
-                            vec![stmt]
-                        } else {
-                            vec![]
+                        match self.parse_statement() {
+                            Some(stmt) => vec![stmt],
+                            None => vec![]
                         }
                     };
                     
                     Some(ASTNode::For(var_name, Box::new(range_expr), body))
                 } else {
-                    None
+                    // Set error context for missing loop variable
+                    self.error_context = Some(format!("for loop requires a loop variable\n  = help: use syntax: for variable in range {{ ... }}\n  = example: for i in 1..5 {{ print(i); }}"));
+                    return None;
                 }
             }
             Token::If => {
                 self.advance();
+                
+                // Check if condition has parentheses
+                if !matches!(self.current_token, Token::LeftParen) {
+                    // Set error context for missing parentheses
+                    self.error_context = Some(format!("if statement requires parentheses around the condition\n  = help: use syntax: if(condition) {{ ... }}\n  = example: if(x > 0) {{ print(x); }}"));
+                    return None;
+                }
+                self.advance();
+                
                 let condition = self.parse_expression()?;
+                
+                if !matches!(self.current_token, Token::RightParen) {
+                    return None;
+                }
+                self.advance();
                 
                 let then_branch = if matches!(self.current_token, Token::LeftBrace) {
                     self.advance();
                     let mut statements = Vec::new();
                     while !matches!(self.current_token, Token::RightBrace) {
-                        if let Some(stmt) = self.parse_statement() {
-                            statements.push(stmt);
-                        } else {
-                            break;
+                        match self.parse_statement() {
+                            Some(stmt) => {
+                                statements.push(stmt);
+                            }
+                            None => {
+                                break;
+                            }
                         }
                     }
                     if matches!(self.current_token, Token::RightBrace) {
@@ -464,10 +514,9 @@ impl Parser {
                     }
                     statements
                 } else {
-                    if let Some(stmt) = self.parse_statement() {
-                        vec![stmt]
-                    } else {
-                        vec![]
+                    match self.parse_statement() {
+                        Some(stmt) => vec![stmt],
+                        None => vec![]
                     }
                 };
                 
@@ -477,10 +526,13 @@ impl Parser {
                         self.advance();
                         let mut statements = Vec::new();
                         while !matches!(self.current_token, Token::RightBrace) {
-                            if let Some(stmt) = self.parse_statement() {
-                                statements.push(stmt);
-                            } else {
-                                break;
+                            match self.parse_statement() {
+                                Some(stmt) => {
+                                    statements.push(stmt);
+                                }
+                                None => {
+                                    break;
+                                }
                             }
                         }
                         if matches!(self.current_token, Token::RightBrace) {
@@ -488,10 +540,9 @@ impl Parser {
                         }
                         Some(statements)
                     } else {
-                        if let Some(stmt) = self.parse_statement() {
-                            Some(vec![stmt])
-                        } else {
-                            None
+                        match self.parse_statement() {
+                            Some(stmt) => Some(vec![stmt]),
+                            None => None
                         }
                     }
                 } else {
@@ -504,6 +555,8 @@ impl Parser {
                 self.advance();
                 
                 if !matches!(self.current_token, Token::LeftParen) {
+                    // Set error context for missing parentheses - this will be picked up by the main parse loop
+                    self.error_context = Some(format!("while loop requires parentheses around the condition\n  = help: use syntax: while(condition) {{ ... }}\n  = example: while(x < 3) {{ x = x + 1; }}"));
                     return None;
                 }
                 self.advance();
@@ -519,10 +572,13 @@ impl Parser {
                     self.advance();
                     let mut statements = Vec::new();
                     while !matches!(self.current_token, Token::RightBrace) {
-                        if let Some(stmt) = self.parse_statement() {
-                            statements.push(stmt);
-                        } else {
-                            break;
+                        match self.parse_statement() {
+                            Some(stmt) => {
+                                statements.push(stmt);
+                            }
+                            None => {
+                                break;
+                            }
                         }
                     }
                     if matches!(self.current_token, Token::RightBrace) {
@@ -530,10 +586,9 @@ impl Parser {
                     }
                     statements
                 } else {
-                    if let Some(stmt) = self.parse_statement() {
-                        vec![stmt]
-                    } else {
-                        vec![]
+                    match self.parse_statement() {
+                        Some(stmt) => vec![stmt],
+                        None => vec![]
                     }
                 };
                 
@@ -542,6 +597,8 @@ impl Parser {
             Token::Input => {
                 self.advance();
                 if !matches!(self.current_token, Token::LeftParen) {
+                    // Set error context for missing parentheses
+                    self.error_context = Some(format!("input statement requires parentheses\n  = help: use syntax: input(prompt, variable)\n  = example: input(\"Enter name: \", name)"));
                     return None;
                 }
                 self.advance();
@@ -574,6 +631,8 @@ impl Parser {
             Token::Print => {
                 self.advance();
                 if !matches!(self.current_token, Token::LeftParen) {
+                    // Set error context for missing parentheses
+                    self.error_context = Some(format!("print statement requires parentheses\n  = help: use syntax: print(expression)\n  = example: print(\"Hello World\")"));
                     return None;
                 }
                 self.advance();
@@ -594,6 +653,8 @@ impl Parser {
             Token::Println => {
                 self.advance();
                 if !matches!(self.current_token, Token::LeftParen) {
+                    // Set error context for missing parentheses
+                    self.error_context = Some(format!("println statement requires parentheses\n  = help: use syntax: println(expression)\n  = example: println(\"Hello World\")"));
                     return None;
                 }
                 self.advance();
@@ -865,9 +926,7 @@ impl Parser {
                 
 
                 if !matches!(self.current_token, Token::GreaterThan) {
-
                     return None;
-
                 }
 
                 self.advance(); // consume '>'
